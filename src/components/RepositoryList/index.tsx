@@ -40,11 +40,14 @@ export function RepositoryList({ groupedPullRequests, loading }: RepositoryListP
           <Typography fontSize={'1.2rem'} children={group.repo} mt={4} />
           {group.prs.map((prs) => (
             <Box key={group.repo}>
+              <a href={prs.prUrl} target="_blank" rel="noreferrer">
               <CardItem title={prs.title} autor={prs.owner} changes={prs.comments} categories={['Bug']} problemType="error" />
+            </a>
             </Box>
-          ))}
-        </Stack>
       ))}
     </Stack>
+  ))
+}
+    </Stack >
   );
 }
