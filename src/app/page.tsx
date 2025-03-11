@@ -86,9 +86,6 @@ export default function Dashboard() {
 
   return (
     <ThemeProvider theme={theme}>
-      
-        <Person sx={{bgcolor: theme.palette.grey[500]}}/>
-     
       <Box sx={{ padding: 2, display: 'flex', flexDirection: 'row', height: '100vh', overflow: 'hidden' }}>
         <RepositoryList groupedPullRequests={groupedPullRequests} loading={loading} />
         <RepositoryDialog open={openDialog} onClose={() => setOpenDialog(false)} repos={repos} />
