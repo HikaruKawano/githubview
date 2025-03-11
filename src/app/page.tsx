@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ThemeProvider, Box } from '@mui/material';
+import { ThemeProvider, Box, Stack } from '@mui/material';
 import { FetchOpenPullRequestsByRepo, GetRepos } from '@/lib/github';
 import { RepositoryList } from '../components/RepositoryList';
 import { RepositoryDialog } from '../components/RepositoryDialog';
 import theme from '@/lib/theme';
+import { Person, PersonOffOutlined } from '@mui/icons-material';
 
 export default function Dashboard() {
   const [groupedPullRequests, setGroupedPullRequests] = useState<any[]>([]);
@@ -64,7 +65,6 @@ export default function Dashboard() {
     loadData();
   }, [token, owner]);
 
-  // Função para buscar a contagem de comentários do code review
   const fetchReviewCommentsCount = async (owner: string, repo: string, pullNumber: number, token: string) => {
     try {
       const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/comments`, {
@@ -84,9 +84,11 @@ export default function Dashboard() {
     }
   };
 
-  // console.log(groupedPullRequests);
   return (
     <ThemeProvider theme={theme}>
+      
+        <Person sx={{bgcolor: theme.palette.grey[500]}}/>
+     
       <Box sx={{ padding: 2, display: 'flex', flexDirection: 'row', height: '100vh', overflow: 'hidden' }}>
         <RepositoryList groupedPullRequests={groupedPullRequests} loading={loading} />
         <RepositoryDialog open={openDialog} onClose={() => setOpenDialog(false)} repos={repos} />
