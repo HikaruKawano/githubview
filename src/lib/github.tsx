@@ -33,6 +33,23 @@ export async function GetRepos(owner: string, token: string): Promise<string[]> 
   }
 }
 
+async function GetReviewCommentsCount(octokit: Octokit, owner: string, repo: string, pull_number: number): Promise<number> {
+  try {
+    const { data } = await octokit.request("GET /repos/{owner}/{repo}/pulls/{pull_number}/comments", {
+      owner,
+      repo,
+      pull_number,
+      headers: { "X-GitHub-Api-Version": "2022-11-28" },
+      per_page: 100,
+    });
+
+    return data.length;
+  } catch (error) {
+    console.error(`Erro ao buscar comentários do PR #${pull_number} em ${repo}:`, error);
+    return 0;
+  }
+}
+
 export async function FetchOpenPullRequests(owner: string, repo: string, token: string) {
   const octokit = createOctokit(token);
 
@@ -47,16 +64,22 @@ export async function FetchOpenPullRequests(owner: string, repo: string, token: 
 
     if (!data.length) return null;
 
-    return {
-      repo,
-      prs: data.map((pr: any) => ({
-        title: pr.title,
-        url: pr.user?.avatar_url,
-        state: pr.state,
-        owner: pr.user?.login,
-        prUrl: pr.html_url,
-      })),
-    };
+    const prsWithComments = await Promise.all(
+      data.map(async (pr: any) => {
+        const reviewCommentsCount = await GetReviewCommentsCount(octokit, owner, repo, pr.number);
+
+        return {
+          title: pr.title,
+          url: pr.user?.avatar_url,
+          state: pr.state,
+          owner: pr.user?.login,
+          prUrl: pr.html_url,
+          comments: reviewCommentsCount,
+        };
+      })
+    );
+
+    return { repo, prs: prsWithComments };
   } catch (error) {
     Swal.fire("Erro", `Erro ao buscar PRs do repositório ${repo}.`, "error");
     return null;

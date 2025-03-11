@@ -10,6 +10,7 @@ interface RepositoryListProps {
       title: string;
       owner?: string;
       prUrl: string;
+      comments: number;
     }>;
   }>;
   loading: boolean;
@@ -35,9 +36,14 @@ export function RepositoryList({ groupedPullRequests, loading }: RepositoryListP
   return (
     <Stack bgcolor="background.default" borderRadius={2} padding={2} flex={1} overflow="auto" maxHeight="85vh" boxShadow={3}>
       {groupedPullRequests.map((group) => (
-        <Box key={group.repo} marginBottom={4}>
-          <CardItem title={group.repo} problem="Erro ao processar PRs" categories={['Bug']} problemType="error" />
-        </Box>
+        <Stack>
+          <Typography fontSize={'1.2rem'} children={group.repo} mt={4} />
+          {group.prs.map((prs) => (
+            <Box key={group.repo}>
+              <CardItem title={prs.title} autor={prs.owner} changes={prs.comments} categories={['Bug']} problemType="error" />
+            </Box>
+          ))}
+        </Stack>
       ))}
     </Stack>
   );

@@ -4,12 +4,13 @@ import { Box, Chip, Typography, Stack, useTheme } from "@mui/material";
 
 interface CardItemProps {
   title: string;
-  problem: string;
+  autor: string | undefined;
   categories: string[];
   problemType: string;
+  changes: number;
 }
 
-const CardItem: React.FC<CardItemProps> = ({ title, problem, categories, problemType }) => {
+const CardItem: React.FC<CardItemProps> = ({ title, categories, autor, problemType, changes }) => {
   const theme = useTheme(); // Usando o hook useTheme para acessar o tema
 
   // Determina o ícone da categoria
@@ -43,16 +44,13 @@ const CardItem: React.FC<CardItemProps> = ({ title, problem, categories, problem
         {title}
       </Typography>
       <Box mt={1}>
-        <Typography variant="body2" component="span" sx={{ color: problemColor, fontWeight: "bold" }}>
-          {problemLabel}:{" "}
-        </Typography>
         <Typography variant="body2" component="span" sx={{ color: theme.palette.grey[400] }}>
-          {problem}
+          {autor}
         </Typography>
       </Box>
-      <Stack direction="row" spacing={1} alignItems="center" mt={2} color={theme.palette.grey[400]} fontSize="small">
+      <Stack direction="row" spacing={1} gap={0.5} alignItems="center" mt={2} color={theme.palette.grey[400]} fontSize="small">
         <Comment />
-        200 <Box sx={{ ml: "auto" }}>00:00</Box>
+        {changes} <Box sx={{ ml: "auto" }}>00:00</Box>
       </Stack>
     </Box>
   );

@@ -51,6 +51,7 @@ export default function Dashboard() {
           GetRepos(owner, token),
           FetchOpenPullRequestsByRepo(owner, token),
         ]);
+
         setRepos(reposData);
         setGroupedPullRequests(prsData);
       } catch (error) {
@@ -63,6 +64,27 @@ export default function Dashboard() {
     loadData();
   }, [token, owner]);
 
+  // Função para buscar a contagem de comentários do code review
+  const fetchReviewCommentsCount = async (owner: string, repo: string, pullNumber: number, token: string) => {
+    try {
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/comments`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-GitHub-Api-Version': '2022-11-28',
+        },
+      });
+
+      if (!response.ok) throw new Error('Erro ao buscar comentários');
+
+      const comments = await response.json();
+      return comments.length;
+    } catch (error) {
+      console.error(`Erro ao buscar comentários para PR #${pullNumber} em ${repo}`, error);
+      return 0;
+    }
+  };
+
+  // console.log(groupedPullRequests);
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ padding: 2, display: 'flex', flexDirection: 'row', height: '100vh', overflow: 'hidden' }}>
