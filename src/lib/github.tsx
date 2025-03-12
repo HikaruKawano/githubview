@@ -3,12 +3,21 @@ import Swal from "sweetalert2";
 
 const createOctokit = (token: string) => new Octokit({ auth: token });
 
-async function isOrganization(octokit: Octokit, owner: string): Promise<boolean> {
+// Valida se o owner é uma organização ou um usuário
+async function isOrganizationOrUser(
+  octokit: Octokit,
+  owner: string
+): Promise<"org" | "user" | null> {
   try {
-    const { data } = await octokit.request("GET /orgs/{org}", { org: owner });
-    return !!data;
+    await octokit.request("GET /orgs/{org}", { org: owner });
+    return "org";
   } catch {
-    return false;
+    try {
+      await octokit.request("GET /users/{username}", { username: owner });
+      return "user";
+    } catch {
+      throw new Error("Usuário ou organização não encontrados.");
+    }
   }
 }
 
@@ -16,9 +25,14 @@ export async function GetRepos(owner: string, token: string): Promise<string[]> 
   const octokit = createOctokit(token);
 
   try {
-    const isOrg = await isOrganization(octokit, owner);
-    const endpoint = isOrg ? "GET /orgs/{org}/repos" : "GET /users/{username}/repos";
-    const params = isOrg ? { org: owner } : { username: owner };
+    const type = await isOrganizationOrUser(octokit, owner);
+    if (!type) {
+      Swal.fire("Erro", "Usuário ou organização não encontrados.", "error");
+      return [];
+    }
+
+    const endpoint = type === "org" ? "GET /orgs/{org}/repos" : "GET /users/{username}/repos";
+    const params = type === "org" ? { org: owner } : { username: owner };
 
     const { data } = await octokit.request(endpoint, {
       ...params,
@@ -28,25 +42,31 @@ export async function GetRepos(owner: string, token: string): Promise<string[]> 
 
     return data.map((repo: any) => repo.name);
   } catch (error) {
-    Swal.fire("Erro", "Erro ao buscar repositórios.", "error");
-    return [];
+    throw new Error("Erro ao buscar repositórios.");
   }
 }
 
-async function GetReviewCommentsCount(octokit: Octokit, owner: string, repo: string, pull_number: number): Promise<number> {
+async function GetReviewCommentsCount(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  pull_number: number
+): Promise<number> {
   try {
-    const { data } = await octokit.request("GET /repos/{owner}/{repo}/pulls/{pull_number}/comments", {
-      owner,
-      repo,
-      pull_number,
-      headers: { "X-GitHub-Api-Version": "2022-11-28" },
-      per_page: 100,
-    });
+    const { data } = await octokit.request(
+      "GET /repos/{owner}/{repo}/pulls/{pull_number}/comments",
+      {
+        owner,
+        repo,
+        pull_number,
+        headers: { "X-GitHub-Api-Version": "2022-11-28" },
+        per_page: 100,
+      }
+    );
 
     return data.length;
   } catch (error) {
-    console.error(`Erro ao buscar comentários do PR #${pull_number} em ${repo}:`, error);
-    return 0;
+    throw new Error(`Erro ao buscar comentários do PR.`);
   }
 }
 
@@ -81,8 +101,7 @@ export async function FetchOpenPullRequests(owner: string, repo: string, token: 
 
     return { repo, prs: prsWithComments };
   } catch (error) {
-    Swal.fire("Erro", `Erro ao buscar PRs do repositório ${repo}.`, "error");
-    return null;
+    throw new Error(`Erro ao buscar PRs do repositório.`);
   }
 }
 
@@ -90,7 +109,35 @@ export async function FetchOpenPullRequestsByRepo(owner: string, token: string) 
   const repos = await GetRepos(owner, token);
   if (!repos.length) return [];
 
-  const results = await Promise.all(repos.map(repo => FetchOpenPullRequests(owner, repo, token)));
+  const results = await Promise.all(repos.map((repo) => FetchOpenPullRequests(owner, repo, token)));
 
   return results.filter(Boolean);
+}
+
+export async function GetUserData(owner: string, token: string) {
+  const octokit = createOctokit(token);
+
+  try {
+    const { data } = await octokit.request("GET /users/{username}", {
+      username: owner,
+      headers: { "X-GitHub-Api-Version": "2022-11-28" },
+    });
+
+    return {
+      login: data.login,
+      name: data.name,
+      avatar_url: data.avatar_url,
+      bio: data.bio,
+      company: data.company,
+      email: data.email,
+      location: data.location,
+      blog: data.blog,
+      public_repos: data.public_repos,
+      followers: data.followers,
+      following: data.following,
+      created_at: data.created_at,
+    };
+  } catch (error) {
+    throw new Error("Erro ao buscar dados do usuário.");
+  }
 }

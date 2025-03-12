@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ThemeProvider, Box, Stack } from '@mui/material';
-import { FetchOpenPullRequestsByRepo, GetRepos } from '@/lib/github';
+import { ThemeProvider, Box, Stack, Avatar } from '@mui/material';
+import { FetchOpenPullRequestsByRepo, GetRepos, GetUserData } from '@/lib/github';
 import { RepositoryList } from '../components/RepositoryList';
 import { RepositoryDialog } from '../components/RepositoryDialog';
 import theme from '@/lib/theme';
-import { Person, PersonOffOutlined } from '@mui/icons-material';
+import { Person } from '@mui/icons-material';
+import UserProfile from '@/components/User';
+import Swal from 'sweetalert2';
 
 export default function Dashboard() {
   const [groupedPullRequests, setGroupedPullRequests] = useState<any[]>([]);
@@ -16,6 +18,8 @@ export default function Dashboard() {
   const [openDialog, setOpenDialog] = useState(false);
   const [token, setToken] = useState<string>();
   const [owner, setOwner] = useState<string>();
+  const [userData, setUserData] = useState<any>(null);
+  const [openModal, setOpenModal] = useState(false);
 
   const router = useRouter();
 
@@ -48,15 +52,18 @@ export default function Dashboard() {
       if (!token || !owner) return;
 
       try {
-        const [reposData, prsData] = await Promise.all([
+        const [reposData, prsData, userData] = await Promise.all([ // Aqui você pode garantir que a API já retornou dados
           GetRepos(owner, token),
           FetchOpenPullRequestsByRepo(owner, token),
+          GetUserData(owner, token),
         ]);
 
         setRepos(reposData);
         setGroupedPullRequests(prsData);
-      } catch (error) {
-        console.error('❌ Erro ao carregar dados:', error);
+        setUserData(userData);
+      } catch (error: any) {
+        Swal.fire("Erro", "Tokem ou usuario invalido", "error");
+        router.push('/login');
       } finally {
         setLoading(false);
       }
@@ -65,28 +72,52 @@ export default function Dashboard() {
     loadData();
   }, [token, owner]);
 
-  const fetchReviewCommentsCount = async (owner: string, repo: string, pullNumber: number, token: string) => {
-    try {
-      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/comments`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'X-GitHub-Api-Version': '2022-11-28',
-        },
-      });
-
-      if (!response.ok) throw new Error('Erro ao buscar comentários');
-
-      const comments = await response.json();
-      return comments.length;
-    } catch (error) {
-      console.error(`Erro ao buscar comentários para PR #${pullNumber} em ${repo}`, error);
-      return 0;
-    }
-  };
+  // Verifique se os dados estão carregados para evitar a renderização incorreta
+  if (loading) return null;
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ padding: 2, display: 'flex', flexDirection: 'row', height: '100vh', overflow: 'hidden' }}>
+      <Stack direction="row" alignItems="center" justifyContent="end">
+        {userData?.avatar_url ? (
+          <Avatar
+            src={userData.avatar_url}
+            onClick={() => setOpenModal(true)}
+            sx={{
+              width: '55px',
+              height: '55px',
+              borderRadius: '50%',
+              cursor: 'pointer',
+              margin: '10px',
+            }}
+          />
+        ) : (
+          <Person
+            sx={{
+              bgcolor: theme.palette.grey[500],
+              width: '45px',
+              height: '45px',
+              borderRadius: '50%',
+              padding: 1,
+              m: 2,
+            }}
+          />
+        )}
+      </Stack>
+      <Box
+        sx={{
+          padding: 2,
+          display: 'flex',
+          flexDirection: 'row',
+          height: '100vh',
+          overflow: 'hidden',
+        }}
+      >
+        <UserProfile
+          open={openModal}
+          onClose={() => setOpenModal(false)}
+          owner={owner}
+          token={token}
+        />
         <RepositoryList groupedPullRequests={groupedPullRequests} loading={loading} />
         <RepositoryDialog open={openDialog} onClose={() => setOpenDialog(false)} repos={repos} />
       </Box>
