@@ -85,8 +85,12 @@ export async function FetchOpenPullRequests(owner: string, repo: string, token: 
     if (!data.length) return null;
 
     const prsWithComments = await Promise.all(
-      data.map(async (pr: any) => {
+      data.map(async (pr) => {
         const reviewCommentsCount = await GetReviewCommentsCount(octokit, owner, repo, pr.number);
+
+        const createdAt = new Date(pr.created_at);
+        const now = new Date();
+        const daysOpen = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
 
         return {
           title: pr.title,
@@ -95,6 +99,8 @@ export async function FetchOpenPullRequests(owner: string, repo: string, token: 
           owner: pr.user?.login,
           prUrl: pr.html_url,
           comments: reviewCommentsCount,
+          createdAt: pr.created_at,
+          daysOpen,
         };
       })
     );

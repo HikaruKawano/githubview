@@ -11,6 +11,7 @@ interface RepositoryListProps {
       owner?: string;
       prUrl: string;
       comments: number;
+      daysOpen: number;
     }>;
   }>;
   loading: boolean;
@@ -42,7 +43,7 @@ export function RepositoryList({ groupedPullRequests, loading }: RepositoryListP
             {group.prs.map((prs) => (
               <Box key={group.repo} sx={{width:{ xs: "100%", sm: 300, md: 'auto' }}}>
                 <a href={prs.prUrl} target="_blank" rel="noreferrer">
-                  <CardItem title={prs.title} autor={prs.owner} changes={prs.comments} categories={['Bug']} problemType="error" />
+                  <CardItem title={prs.title} autor={prs.owner} changes={prs.comments} categories={['Bug']} problemType="error" daysOpen={prs.daysOpen} />
                 </a>
               </Box>
             ))}
