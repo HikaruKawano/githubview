@@ -1,5 +1,5 @@
 import React from "react";
-import { BugReport, QuestionAnswer, Comment, Add } from "@mui/icons-material";
+import { BugReport, Comment, Add, Edit, QuestionAnswer, Label } from "@mui/icons-material";
 import { Box, Chip, Typography, Stack, useTheme } from "@mui/material";
 
 interface CardItemProps {
@@ -17,19 +17,30 @@ const CardItem: React.FC<CardItemProps> = ({ title, categories, autor, problemTy
     const titleLowerCase = title.toLowerCase();
     if (/(feat|rep)/.test(titleLowerCase)) return { icon: <Add />, color: theme.palette.success.main, label: "Feature" };
     if (/(fix|bug|correção)/.test(titleLowerCase)) return { icon: <BugReport />, color: theme.palette.error.main, label: "Bug" };
-    return { icon: undefined, color: theme.palette.secondary.main };
+    if (/refactor|refatoração/.test(titleLowerCase)) return { icon: <Edit />, color: theme.palette.warning.main, label: "Refactor" };
+    return { icon: <QuestionAnswer />, color: theme.palette.info.main, label: "Discussion" };
   };
 
-  const { icon: titleIcon, color: titleColor, label: titleLable } = getTitleIcon();
+  const { icon: titleIcon, color: titleColor, label: titleLabel } = getTitleIcon();
 
   return (
-    <Box bgcolor={theme.palette.grey[700]} p={2} my={1} borderRadius={2}>
+    <Box
+      bgcolor={theme.palette.background.paper}
+      p={3}
+      my={2}
+      borderRadius={4}
+      boxShadow={3}
+      sx={{
+        transition: "transform 0.2s ease",
+        "&:hover": { transform: "translateY(-5px)" },
+      }}
+    >
       <Stack direction="row" spacing={1} mb={1} flexWrap="wrap">
         {categories.map((category, index) => (
           <Chip
             key={index}
+            label={titleLabel}
             icon={titleIcon}
-            label={titleLable}
             size="small"
             sx={{
               bgcolor: theme.palette.grey[800],
@@ -42,17 +53,24 @@ const CardItem: React.FC<CardItemProps> = ({ title, categories, autor, problemTy
           />
         ))}
       </Stack>
-      <Typography variant="h6" color="white" fontWeight="bold">
+
+      <Typography variant="h6" color={theme.palette.text.primary} fontWeight="bold">
         {title}
       </Typography>
+
       <Box>
         <Typography variant="body2" component="span" sx={{ color: theme.palette.grey[400] }}>
-          {autor}
+          {autor || "Autor desconhecido"}
         </Typography>
       </Box>
-      <Stack direction="row" spacing={1} gap={0.5} alignItems="center" mt={1} color={theme.palette.grey[400]} fontSize="small">
-        <Comment sx={{fontSize: 18}}/>
-        {changes} <Box sx={{ ml: "auto" }}>00:00</Box>
+      <Stack direction="row" spacing={1} alignItems="center" mt={1}>
+        <Comment sx={{ fontSize: 20, color: theme.palette.grey[400] }} />
+        <Typography variant="body2" color={theme.palette.grey[400]}>
+          {changes} alterações
+        </Typography>
+        <Box sx={{ ml: "auto", fontSize: "0.85rem", color: theme.palette.grey[500] }}>
+          ⏳ 00:00
+        </Box>
       </Stack>
     </Box>
   );
