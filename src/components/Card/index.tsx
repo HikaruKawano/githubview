@@ -8,9 +8,10 @@ interface CardItemProps {
   categories: string[];
   problemType: string;
   changes: number;
+  daysOpen: number;
 }
 
-const CardItem: React.FC<CardItemProps> = ({ title, categories, autor, problemType, changes }) => {
+const CardItem: React.FC<CardItemProps> = ({ title, categories, autor, changes, daysOpen }) => {
   const theme = useTheme();
 
   const getTitleIcon = () => {
@@ -70,7 +71,7 @@ const CardItem: React.FC<CardItemProps> = ({ title, categories, autor, problemTy
           {changes} alterações
         </Typography>
         <Box sx={{ ml: "auto", fontSize: "0.85rem", color: theme.palette.grey[500] }}>
-          ⏳ 00:00
+          ⏳ {daysOpen > 0 ? `Há ${daysOpen} dias aberto` : "Hoje"}
         </Box>
       </Stack>
     </Box>

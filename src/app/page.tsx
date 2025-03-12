@@ -23,7 +23,6 @@ export default function Dashboard() {
 
   const router = useRouter();
 
-  // Função para buscar cookies de forma segura
   const getCookie = (name: string) => {
     if (typeof window === 'undefined') return undefined;
     return document.cookie
@@ -46,13 +45,12 @@ export default function Dashboard() {
     }
   }, [router]);
 
-  // Carrega os repositórios e PRs ao obter o token e o owner
   useEffect(() => {
     const loadData = async () => {
       if (!token || !owner) return;
 
       try {
-        const [reposData, prsData, userData] = await Promise.all([ // Aqui você pode garantir que a API já retornou dados
+        const [reposData, prsData, userData] = await Promise.all([
           GetRepos(owner, token),
           FetchOpenPullRequestsByRepo(owner, token),
           GetUserData(owner, token),
@@ -72,9 +70,9 @@ export default function Dashboard() {
     loadData();
   }, [token, owner]);
 
-  // Verifique se os dados estão carregados para evitar a renderização incorreta
   if (loading) return null;
 
+  console.log(groupedPullRequests);
   return (
     <ThemeProvider theme={theme}>
       <Stack direction="row" alignItems="center" justifyContent="end">
