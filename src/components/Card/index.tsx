@@ -27,12 +27,13 @@ const CardItem: React.FC<CardItemProps> = ({ title, categories, autor, problemTy
     <Box
       bgcolor={theme.palette.background.paper}
       p={3}
-      my={2}
       borderRadius={4}
       boxShadow={3}
       sx={{
         transition: "transform 0.2s ease",
         "&:hover": { transform: "translateY(-5px)" },
+        minWidth: { xs: "100%", sm: 300, md: 400 },
+        maxWidth: { xs: "100%", sm: 350, md: 400 },
       }}
     >
       <Stack direction="row" spacing={1} mb={1} flexWrap="wrap">
