@@ -106,8 +106,8 @@ export default function Dashboard() {
           padding: 2,
           display: 'flex',
           flexDirection: 'row',
-          height: '100vh',
-          overflow: 'hidden',
+          height: '100%',
+          overflow: 'auto',
         }}
       >
         <UserProfile
