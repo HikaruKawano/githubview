@@ -35,36 +35,43 @@ const CardItem: React.FC<CardItemProps> = ({ title, categories, autor, changes, 
         "&:hover": { transform: "translateY(-5px)" },
         minWidth: { xs: "100%", sm: 300, md: 400 },
         maxWidth: { xs: "100%", sm: 350, md: 400 },
+        minHeight: { xs: 225, },
+        maxHeight: { xs: 225, sm: 270 }
       }}
+      display={"flex"}
+      flexDirection={"column"}
+      justifyContent={"space-between"}
     >
-      <Stack direction="row" spacing={1} mb={1} flexWrap="wrap">
-        {categories.map((category, index) => (
-          <Chip
-            key={index}
-            label={titleLabel}
-            icon={titleIcon}
-            size="small"
-            sx={{
-              bgcolor: theme.palette.grey[800],
-              color: theme.palette.common.white,
-              border: `1px solid ${theme.palette.grey[400]}`,
-              '& .MuiChip-icon': {
-                color: titleColor
-              }
-            }}
-          />
-        ))}
-      </Stack>
+      <Stack>
+        <Stack direction="row" spacing={1} mb={1} flexWrap="wrap">
+          {categories.map((category, index) => (
+            <Chip
+              key={index}
+              label={titleLabel}
+              icon={titleIcon}
+              size="small"
+              sx={{
+                bgcolor: theme.palette.grey[800],
+                color: theme.palette.common.white,
+                border: `1px solid ${theme.palette.grey[400]}`,
+                '& .MuiChip-icon': {
+                  color: titleColor
+                }
+              }}
+            />
+          ))}
+        </Stack>
 
-      <Typography variant="h6" color={theme.palette.text.primary} fontWeight="bold">
-        {title}
-      </Typography>
-
-      <Box>
-        <Typography variant="body2" component="span" sx={{ color: theme.palette.grey[400] }}>
-          {autor || "Autor desconhecido"}
+        <Typography variant="h6" color={theme.palette.text.primary} fontWeight="bold">
+          {title}
         </Typography>
-      </Box>
+
+        <Box>
+          <Typography variant="body2" component="span" sx={{ color: theme.palette.grey[400] }}>
+            {autor || "Autor desconhecido"}
+          </Typography>
+        </Box>
+      </Stack>
       <Stack direction="row" spacing={1} alignItems="center" mt={1}>
         <Comment sx={{ fontSize: 20, color: theme.palette.grey[400] }} />
         <Typography variant="body2" color={theme.palette.grey[400]}>
