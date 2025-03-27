@@ -70,6 +70,66 @@ async function GetReviewCommentsCount(
   }
 }
 
+async function IsPullRequestApproved(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  pull_number: number
+): Promise<boolean> {
+  try {
+    const { data } = await octokit.request(
+      "GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews",
+      {
+        owner,
+        repo,
+        pull_number,
+        headers: { "X-GitHub-Api-Version": "2022-11-28" },
+      }
+    );
+
+    return data.some((review) => review.state === "APPROVED");
+  } catch (error) {
+    throw new Error(`Erro ao buscar revisões do PR.`);
+  }
+}
+
+async function GetResolvedReviewThreads(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  pull_number: number
+): Promise<number> {
+  const query = `
+    query($owner: String!, $repo: String!, $pull_number: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $pull_number) {
+          reviewThreads(first: 100) {
+            nodes {
+              isResolved
+            }
+          }
+        }
+      }
+    }
+  `;
+  
+  // A conversão para number é necessária pois o GraphQL espera um Int para pull_number
+  const variables = { owner, repo, pull_number };
+
+  const response = await octokit.graphql(query, variables) as {
+    repository: {
+      pullRequest: {
+        reviewThreads: { nodes: { isResolved: boolean }[] }
+      }
+    }
+  };
+
+  const threads = response.repository.pullRequest.reviewThreads.nodes;
+  const resolvedCount = threads.filter(thread => thread.isResolved).length;
+  console.log("aaaaaaaaa", resolvedCount)
+  return resolvedCount;
+}
+
 export async function FetchOpenPullRequests(owner: string, repo: string, token: string) {
   const octokit = createOctokit(token);
 
@@ -87,6 +147,8 @@ export async function FetchOpenPullRequests(owner: string, repo: string, token: 
     const prsWithComments = await Promise.all(
       data.map(async (pr) => {
         const reviewCommentsCount = await GetReviewCommentsCount(octokit, owner, repo, pr.number);
+        const resolvedConversations = await GetResolvedReviewThreads(octokit, owner, repo, pr.number);
+        const isApproved = await IsPullRequestApproved(octokit, owner, repo, pr.number);
 
         const createdAt = new Date(pr.created_at);
         const now = new Date();
@@ -98,7 +160,9 @@ export async function FetchOpenPullRequests(owner: string, repo: string, token: 
           state: pr.state,
           owner: pr.user?.login,
           prUrl: pr.html_url,
+          approved: isApproved,
           comments: reviewCommentsCount,
+          resolvedComments: resolvedConversations,
           createdAt: pr.created_at,
           daysOpen,
         };

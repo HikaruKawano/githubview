@@ -1,28 +1,66 @@
 import React from "react";
-import { BugReport, Comment, Add, Edit, QuestionAnswer, Label } from "@mui/icons-material";
-import { Box, Chip, Typography, Stack, useTheme } from "@mui/material";
+import {
+  BugReport,
+  Comment,
+  Add,
+  Edit,
+  QuestionAnswer,
+  CheckCircle,
+  DoneAll
+} from "@mui/icons-material";
+import {
+  Box,
+  Chip,
+  Typography,
+  Stack,
+  useTheme,
+  LinearProgress,
+  Tooltip
+} from "@mui/material";
 
 interface CardItemProps {
   title: string;
-  autor: string | undefined;
+  autor?: string;
   categories: string[];
-  problemType: string;
-  changes: number;
+  problemType: string;  
+  totalChanges: number; 
+  resolvedChanges: number;
   daysOpen: number;
+  approved?: boolean;
 }
 
-const CardItem: React.FC<CardItemProps> = ({ title, categories, autor, changes, daysOpen }) => {
+const CardItem: React.FC<CardItemProps> = ({
+  title,
+  categories,
+  autor,
+  totalChanges,
+  resolvedChanges,
+  daysOpen,
+  approved = false,
+  problemType,
+}) => {
   const theme = useTheme();
 
-  const getTitleIcon = () => {
-    const titleLowerCase = title.toLowerCase();
-    if (/(feat|rep)/.test(titleLowerCase)) return { icon: <Add />, color: theme.palette.success.main, label: "Feature" };
-    if (/(fix|bug|correção)/.test(titleLowerCase)) return { icon: <BugReport />, color: theme.palette.error.main, label: "Bug" };
-    if (/refactor|refatoração/.test(titleLowerCase)) return { icon: <Edit />, color: theme.palette.warning.main, label: "Refactor" };
-    return { icon: <QuestionAnswer />, color: theme.palette.info.main, label: "Discussion" };
+  // Ícone e cor para o tipo do card
+  const getProblemTypeIcon = () => {
+    switch (problemType.toLowerCase()) {
+      case "feature":
+        return { icon: <Add />, color: theme.palette.success.main };
+      case "bug":
+        return { icon: <BugReport />, color: theme.palette.error.main };
+      case "refactor":
+        return { icon: <Edit />, color: theme.palette.warning.main };
+      default:
+        return { icon: <QuestionAnswer />, color: theme.palette.info.main };
+    }
   };
 
-  const { icon: titleIcon, color: titleColor, label: titleLabel } = getTitleIcon();
+  const { icon: typeIcon, color: typeColor } = getProblemTypeIcon();
+
+  // Cálculo do progresso das alterações resolvidas
+  const progress = totalChanges > 0
+    ? Math.round((resolvedChanges / totalChanges) * 100)
+    : 0;
 
   return (
     <Box
@@ -33,52 +71,128 @@ const CardItem: React.FC<CardItemProps> = ({ title, categories, autor, changes, 
       sx={{
         transition: "transform 0.2s ease",
         "&:hover": { transform: "translateY(-5px)" },
-        minWidth: { xs: "100%", sm: 300, md: 400 },
-        maxWidth: { xs: "100%", sm: 350, md: 400 },
-        minHeight: { xs: 225, },
-        maxHeight: { xs: 225, sm: 270 }
+        width: { xs: "100%", sm: 350, md: 400 },
+        minHeight: 230,
+        border: approved ? `2px solid ${theme.palette.success.main}` : "none",
+        position: "relative"
       }}
-      display={"flex"}
-      flexDirection={"column"}
-      justifyContent={"space-between"}
+      display="flex"
+      flexDirection="column"
+      justifyContent="space-between"
     >
-      <Stack>
-        <Stack direction="row" spacing={1} mb={1} flexWrap="wrap">
+      {/* Chip indicando que está aprovado, caso esteja */}
+      {approved && (
+        <Chip
+          label="Aprovado"
+          icon={<DoneAll />}
+          size="small"
+          sx={{
+            position: "absolute",
+            top: 16,
+            right: 16,
+            bgcolor: theme.palette.success.light,
+            color: theme.palette.success.contrastText
+          }}
+        />
+      )}
+
+      <Stack spacing={1}>
+        {/* Linha do "tipo" do card */}
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Chip
+            icon={typeIcon}
+            label={problemType}
+            size="small"
+            sx={{
+              bgcolor: theme.palette.grey[800],
+              color: theme.palette.common.white,
+              border: `1px solid ${theme.palette.grey[400]}`,
+              "& .MuiChip-icon": {
+                color: typeColor
+              }
+            }}
+          />
+
+          {/* Categorias (cada uma com seu Chip) */}
           {categories.map((category, index) => (
             <Chip
               key={index}
-              label={titleLabel}
-              icon={titleIcon}
+              label={category}
               size="small"
               sx={{
-                bgcolor: theme.palette.grey[800],
+                bgcolor: theme.palette.grey[700],
                 color: theme.palette.common.white,
-                border: `1px solid ${theme.palette.grey[400]}`,
-                '& .MuiChip-icon': {
-                  color: titleColor
-                }
+                border: `1px solid ${theme.palette.grey[500]}`,
               }}
             />
           ))}
         </Stack>
 
-        <Typography variant="h6" color={theme.palette.text.primary} fontWeight="bold">
+        {/* Título do card */}
+        <Typography
+          variant="h6"
+          color={theme.palette.text.primary}
+          fontWeight="bold"
+          sx={{
+            mt: 1,
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap"
+          }}
+        >
           {title}
         </Typography>
 
-        <Box>
-          <Typography variant="body2" component="span" sx={{ color: theme.palette.grey[400] }}>
-            {autor || "Autor desconhecido"}
-          </Typography>
-        </Box>
-      </Stack>
-      <Stack direction="row" spacing={1} alignItems="center" mt={1}>
-        <Comment sx={{ fontSize: 20, color: theme.palette.grey[400] }} />
-        <Typography variant="body2" color={theme.palette.grey[400]}>
-          {changes} alterações
+        {/* Autor */}
+        <Typography
+          variant="body2"
+          sx={{ color: theme.palette.grey[400], fontStyle: "italic" }}
+        >
+          {autor || "Autor desconhecido"}
         </Typography>
-        <Box sx={{ ml: "auto", fontSize: "0.85rem", color: theme.palette.grey[500] }}>
-          ⏳ {daysOpen > 0 ? `Há ${daysOpen} dias aberto` : "Hoje"}
+
+        {totalChanges > 0 && (
+          <Box mt={1}>
+            <Tooltip
+              title={`${resolvedChanges} de ${totalChanges} alterações resolvidas`}
+            >
+              <LinearProgress
+                variant="determinate"
+                value={progress}
+                sx={{ height: 6, borderRadius: 3 }}
+              />
+            </Tooltip>
+
+            {resolvedChanges === totalChanges ? (
+              <Chip
+                icon={<CheckCircle sx={{ color: theme.palette.success.dark }} />}
+                label="Todas as alterações resolvidas"
+                size="small"
+                sx={{
+                  bgcolor: theme.palette.success.light,
+                  color: theme.palette.success.contrastText,
+                  mt: 1,
+                }}
+              />
+            ) : (
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                <Comment sx={{ fontSize: 20, color: theme.palette.grey[400], marginRight: 1}} />
+                {resolvedChanges} de {totalChanges} alterações resolvidas
+              </Typography>
+            )}
+          </Box>
+        )}
+      </Stack>
+
+      <Stack direction="row" spacing={1} alignItems="center" mt={2}>
+        <Box
+          sx={{
+            ml: "auto",
+            fontSize: "0.85rem",
+            color: theme.palette.grey[500]
+          }}
+        >
+          {daysOpen > 0 ? `Aberto há ${daysOpen} dia(s)` : "Aberto hoje"}
         </Box>
       </Stack>
     </Box>

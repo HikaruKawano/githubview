@@ -8,7 +8,6 @@ interface PullRequestCardProps {
 
 export function PullRequestCard({ title, assignee, prUrl }: PullRequestCardProps) {
     const handleOpenPR = () => {
-        console.log(prUrl)
         window.open(prUrl); // Abre no navegador padrão do sistema
     };
 

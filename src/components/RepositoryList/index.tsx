@@ -10,14 +10,17 @@ interface RepositoryListProps {
       title: string;
       owner?: string;
       prUrl: string;
+      approved: boolean;
       comments: number;
       daysOpen: number;
+      resolvedComments: number,
     }>;
   }>;
   loading: boolean;
 }
 
 export function RepositoryList({ groupedPullRequests, loading }: RepositoryListProps) {
+  console.log(groupedPullRequests)
   if (loading) {
     return (
       <Stack alignItems="center" justifyContent="center" flex={1} bgcolor="background.default" p={2}>
@@ -41,9 +44,17 @@ export function RepositoryList({ groupedPullRequests, loading }: RepositoryListP
           <Typography fontSize={'1.2rem'} children={group.repo} my={2} />
           <Stack width={'100%'} key={group.repo} display={'flex'} flexDirection={'row'} gap={1} flexWrap={'wrap'}>
             {group.prs.map((prs) => (
-              <Box key={group.repo} sx={{width:{ xs: "100%", sm: 300, md: 'auto' }}} >
+              <Box key={group.repo} sx={{ width: { xs: "100%", sm: 300, md: 'auto' } }} >
                 <a href={prs.prUrl} target="_blank" rel="noreferrer">
-                  <CardItem title={prs.title} autor={prs.owner} changes={prs.comments} categories={['Bug']} problemType="error" daysOpen={prs.daysOpen} />
+                  <CardItem
+                    title={prs.title}
+                    autor={prs.owner}
+                    totalChanges={prs.comments}
+                    categories={['Bug']}
+                    problemType="error"
+                    daysOpen={prs.daysOpen}
+                    approved={prs.approved}
+                    resolvedChanges={prs.resolvedComments} />
                 </a>
               </Box>
             ))}
