@@ -126,14 +126,6 @@ export default function Dashboard() {
               onClose={() => setOpenModal(false)}
               owner={owner}
               token={token}
-              // sx={{
-              //   '& .MuiPaper-root': {
-              //     background: 'rgba(32, 32, 32, 0.9)',
-              //     backdropFilter: 'blur(12px)',
-              //     border: '1px solid rgba(255, 255, 255, 0.1)',
-              //     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
-              //   }
-              // }}
             />
 
             <RepositoryList
