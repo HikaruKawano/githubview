@@ -10,6 +10,7 @@ import {
   Modal,
   IconButton,
   Button,
+  Backdrop
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { GetUserData } from "@/lib/github";
@@ -44,7 +45,6 @@ export default function UserProfileModal({
     fetchUserData();
   }, [owner, token, open]);
 
-  // Função de Logout
   const handleLogout = () => {
     document.cookie =
       "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
@@ -54,67 +54,135 @@ export default function UserProfileModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} aria-labelledby="user-profile-modal">
+    <Modal 
+      open={open} 
+      onClose={onClose} 
+      aria-labelledby="user-profile-modal"
+      BackdropComponent={(props) => (
+        <Backdrop
+          {...props}
+          sx={{
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(8px)'
+          }}
+        />
+      )}
+    >
       <Box
         sx={{
           position: "absolute",
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          bgcolor: "background.paper",
-          boxShadow: 24,
-          borderRadius: 2,
+          bgcolor: 'rgba(32, 32, 32, 0.95)',
+          backdropFilter: 'blur(12px)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+          borderRadius: 4,
           p: 4,
           maxWidth: 500,
-          width: "100%",
+          width: '90%',
+          border: '1px solid rgba(255, 255, 255, 0.1)'
         }}
       >
         <IconButton
           onClick={onClose}
-          sx={{ position: "absolute", top: 8, right: 8 }}
+          sx={{ 
+            position: "absolute", 
+            top: 16, 
+            right: 16,
+            color: 'text.secondary'
+          }}
         >
           <CloseIcon />
         </IconButton>
 
         {loading ? (
-          <CircularProgress />
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <CircularProgress sx={{ color: 'primary.main' }} />
+          </Box>
         ) : !user ? (
           <Typography color="error">Erro ao carregar perfil</Typography>
         ) : (
           <>
             <Avatar
               src={user.avatar_url}
-              sx={{ width: 120, height: 120, mx: "auto", mb: 2 }}
+              sx={{ 
+                width: 120, 
+                height: 120, 
+                mx: "auto", 
+                mb: 2,
+                border: '2px solid rgba(255, 255, 255, 0.1)'
+              }}
             />
-            <Typography variant="h5" textAlign="center">
+            <Typography variant="h5" textAlign="center" color="text.primary">
               {user.name || user.login}
             </Typography>
-            <Typography variant="body2" textAlign="center" color="textSecondary">
-              {user.bio}
-            </Typography>
+            {user.bio && (
+              <Typography 
+                variant="body2" 
+                textAlign="center" 
+                color="text.secondary"
+                sx={{ mt: 1 }}
+              >
+                {user.bio}
+              </Typography>
+            )}
 
-            <Stack spacing={1} sx={{ mt: 2 }}>
-              {user.company && <Typography>🏢 {user.company}</Typography>}
-              {user.location && <Typography>📍 {user.location}</Typography>}
-              {user.email && <Typography>📧 {user.email}</Typography>}
+            <Stack spacing={1.5} sx={{ mt: 3 }}>
+              {user.company && (
+                <Typography color="text.primary">
+                  🏢 {user.company}
+                </Typography>
+              )}
+              {user.location && (
+                <Typography color="text.primary">
+                  📍 {user.location}
+                </Typography>
+              )}
+              {user.email && (
+                <Typography color="text.primary">
+                  📧 {user.email}
+                </Typography>
+              )}
               {user.blog && (
-                <Link href={user.blog} target="_blank" rel="noopener">
+                <Link 
+                  href={user.blog} 
+                  target="_blank" 
+                  rel="noopener"
+                  color="primary"
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                >
                   🔗 {user.blog}
                 </Link>
               )}
-              <Typography>📦 Repositórios públicos: {user.public_repos}</Typography>
-              <Typography>👥 Seguidores: {user.followers}</Typography>
-              <Typography>🔄 Seguindo: {user.following}</Typography>
-              <Typography>📅 Desde: {new Date(user.created_at).toLocaleDateString()}</Typography>
+              <Typography color="text.primary">
+                📦 Repositórios públicos: {user.public_repos}
+              </Typography>
+              <Typography color="text.primary">
+                👥 Seguidores: {user.followers}
+              </Typography>
+              <Typography color="text.primary">
+                🔄 Seguindo: {user.following}
+              </Typography>
+              <Typography color="text.primary">
+                📅 Desde: {new Date(user.created_at).toLocaleDateString()}
+              </Typography>
             </Stack>
 
-            {/* Botão de Logout */}
             <Button
               variant="contained"
               color="error"
               fullWidth
               onClick={handleLogout}
-              sx={{ mt: 3 }}
+              sx={{ 
+                mt: 3,
+                py: 1.5,
+                fontWeight: 'bold',
+                '&:hover': {
+                  transform: 'translateY(-1px)'
+                },
+                transition: 'all 0.3s ease'
+              }}
             >
               Logout
             </Button>

@@ -4,7 +4,6 @@ import {
   Comment,
   Add,
   Edit,
-  QuestionAnswer,
   CheckCircle,
   DoneAll,
   Build,
@@ -37,7 +36,6 @@ interface CardItemProps {
 
 const CardItem: React.FC<CardItemProps> = ({
   title,
-  categories,
   autor,
   totalChanges,
   resolvedChanges,
@@ -47,13 +45,10 @@ const CardItem: React.FC<CardItemProps> = ({
 }) => {
   const theme = useTheme();
 
-  // Ícone e cor para o tipo do card
   const getProblemTypeIcon = () => {
     switch (problemType.toLowerCase()) {
       case "new":
         return { icon: <CreateRounded />, color: theme.palette.success.main };
-      case "info":
-        return { icon: <Add />, color: theme.palette.success.main };
       case "error":
         return { icon: <BugReport />, color: theme.palette.error.main };
       case "warning":
@@ -61,8 +56,6 @@ const CardItem: React.FC<CardItemProps> = ({
       case "nova funcionalidade":
         return { icon: <Add />, color: theme.palette.success.main };
       case "correção de bug":
-        return { icon: <BugReport />, color: theme.palette.error.main };
-      case "correção urgente":
         return { icon: <BugReport />, color: theme.palette.error.main };
       case "documentação":
         return { icon: <DocumentScanner />, color: theme.palette.info.main };
@@ -72,124 +65,101 @@ const CardItem: React.FC<CardItemProps> = ({
         return { icon: <FlashOn />, color: theme.palette.success.main };
       case "estilo/formatação":
         return { icon: <Edit />, color: theme.palette.warning.main };
-      case "refatoração":
-        return { icon: <Edit />, color: theme.palette.warning.main };
       case "tarefas administrativas":
         return { icon: <Settings />, color: theme.palette.info.main };
-      case "integração contínua":
-        return { icon: <Build />, color: theme.palette.info.main };
-      case "configurações/dados":
-        return { icon: <Settings />, color: theme.palette.info.main };
-      case "testes":
-        return { icon: <CheckCircle />, color: theme.palette.info.main };
-      case "em andamento":
-        return { icon: <CheckCircle />, color: theme.palette.info.main };
-      case "reversão":
-        return { icon: <CheckCircle />, color: theme.palette.info.main };
-      case "aperfeiçoamento":
-        return { icon: <FlashOn />, color: theme.palette.info.main };
       case "segurança":
         return { icon: <Security />, color: theme.palette.error.main };
-      case "infraestrutura/deploy":
-        return { icon: <Build />, color: theme.palette.info.main };
       default:
         return { icon: <CheckCircle />, color: theme.palette.info.main };
     }
-  };  
+  };
 
   const { icon: typeIcon, color: typeColor } = getProblemTypeIcon();
-
-  // Cálculo do progresso das alterações resolvidas
   const progress = totalChanges > 0
     ? Math.round((resolvedChanges / totalChanges) * 100)
     : 0;
 
   return (
     <Box
-      bgcolor={theme.palette.background.paper}
+      bgcolor="rgba(255, 255, 255, 0.05)"
       p={3}
       borderRadius={4}
-      boxShadow={3}
       sx={{
         transition: "transform 0.2s ease",
         "&:hover": { transform: "translateY(-5px)" },
         width: { xs: "100%", sm: 350, md: 400 },
-        minHeight: 230,
-        border: approved ? `2px solid ${theme.palette.success.main}` : "none",
-        position: "relative"
+        height: 300,
+        border: approved ? `2px solid ${theme.palette.success.main}` : '1px solid rgba(255, 255, 255, 0.1)',
+        backdropFilter: 'blur(10px)',
+        boxShadow: theme.shadows[2],
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        position: "relative",
+        overflow: "hidden"
       }}
-      display="flex"
-      flexDirection="column"
-      justifyContent="space-between"
     >
-      {/* Chip indicando que está aprovado, caso esteja */}
       {approved && (
         <Chip
           label="Aprovado"
-          icon={<DoneAll />}
+          icon={<DoneAll sx={{ color: theme.palette.success.contrastText }} />}
           size="small"
           sx={{
             position: "absolute",
             top: 16,
             right: 16,
-            bgcolor: theme.palette.success.light,
-            color: theme.palette.success.contrastText
+            bgcolor: theme.palette.success.main,
+            color: theme.palette.success.contrastText,
+            border: `1px solid ${theme.palette.success.dark}`,
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            zIndex: 1,
+            '& .MuiChip-label': { paddingRight: '6px' }
           }}
         />
       )}
 
-      <Stack spacing={1}>
-        {/* Linha do "tipo" do card */}
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Chip
-            icon={typeIcon}
-            label={problemType}
-            size="small"
-            sx={{
-              bgcolor: theme.palette.grey[800],
-              color: theme.palette.common.white,
-              border: `1px solid ${theme.palette.grey[400]}`,
-              "& .MuiChip-icon": {
-                color: typeColor
-              }
-            }}
-          />
-
-        </Stack>
-
-        <Typography
-          variant="h6"
-          color={theme.palette.text.primary}
-          fontWeight="bold"
+      <Stack spacing={1.5}>
+        <Chip
+          icon={typeIcon}
+          label={problemType}
+          size="small"
           sx={{
-            mt: 1,
-            textOverflow: "ellipsis",
-            overflow: "hidden",
-            whiteSpace: "nowrap"
+            bgcolor: theme.palette.secondary.main,
+            color: theme.palette.text.primary,
+            border: `1px solid ${theme.palette.divider}`,
+            "& .MuiChip-icon": { color: typeColor }
+          }}
+        />
+
+        <Typography 
+          variant="h6" 
+          fontWeight={600} 
+          color="text.primary"
+          sx={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden'
           }}
         >
           {title}
         </Typography>
 
-        <Typography
-          variant="body2"
-          sx={{ color: theme.palette.grey[400], fontStyle: "italic" }}
-        >
+        <Typography variant="body2" color="text.secondary" fontStyle="italic">
           {autor || "Autor desconhecido"}
         </Typography>
 
         {totalChanges > 0 && (
           <Box mt={1}>
-            <Tooltip
-              title={`${resolvedChanges} de ${totalChanges} alterações resolvidas`}
-            >
+            <Tooltip title={`${resolvedChanges}/${totalChanges} alterações resolvidas`}>
               <LinearProgress
                 variant="determinate"
                 value={progress}
                 sx={{
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: theme.palette.grey[300],
+                  backgroundColor: theme.palette.divider,
                   '& .MuiLinearProgress-bar': {
                     backgroundColor: theme.palette.success.main,
                   },
@@ -199,36 +169,31 @@ const CardItem: React.FC<CardItemProps> = ({
 
             {resolvedChanges === totalChanges ? (
               <Chip
-                icon={<CheckCircle sx={{ color: theme.palette.success.dark }} />}
-                label="Todas as alterações resolvidas"
+                icon={<CheckCircle />}
+                label="Concluído"
                 size="small"
                 sx={{
-                  bgcolor: theme.palette.success.light,
-                  color: theme.palette.success.contrastText,
-                  mt: 1,
+                  bgcolor: theme.palette.success.main + '22',
+                  color: theme.palette.success.main,
+                  mt: 1.5,
+                  '& .MuiChip-icon': { fontSize: 18 }
                 }}
               />
             ) : (
-              <Typography variant="body2" sx={{ mt: 0.5 }}>
-                <Comment sx={{ fontSize: 20, color: theme.palette.grey[400], marginRight: 1 }} />
-                {resolvedChanges} de {totalChanges} alterações resolvidas
-              </Typography>
+              <Stack direction="row" alignItems="center" mt={1.5} spacing={0.5}>
+                <Comment fontSize="small" color="disabled" />
+                <Typography variant="body2" color="text.secondary">
+                  {resolvedChanges}/{totalChanges} resolvidos
+                </Typography>
+              </Stack>
             )}
           </Box>
         )}
       </Stack>
 
-      <Stack direction="row" spacing={1} alignItems="center" mt={2}>
-        <Box
-          sx={{
-            ml: "auto",
-            fontSize: "0.85rem",
-            color: theme.palette.grey[500]
-          }}
-        >
-          {daysOpen > 0 ? `Aberto há ${daysOpen} dia(s)` : "Aberto hoje"}
-        </Box>
-      </Stack>
+      <Typography variant="caption" color="text.disabled" mt={2} display="block">
+        {daysOpen > 0 ? `Aberto há ${daysOpen} dia(s)` : "Aberto hoje"}
+      </Typography>
     </Box>
   );
 };
