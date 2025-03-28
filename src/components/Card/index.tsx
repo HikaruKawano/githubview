@@ -6,7 +6,13 @@ import {
   Edit,
   QuestionAnswer,
   CheckCircle,
-  DoneAll
+  DoneAll,
+  Build,
+  DocumentScanner,
+  FlashOn,
+  Security,
+  Settings,
+  CreateRounded
 } from "@mui/icons-material";
 import {
   Box,
@@ -22,8 +28,8 @@ interface CardItemProps {
   title: string;
   autor?: string;
   categories: string[];
-  problemType: string;  
-  totalChanges: number; 
+  problemType: string;
+  totalChanges: number;
   resolvedChanges: number;
   daysOpen: number;
   approved?: boolean;
@@ -44,16 +50,52 @@ const CardItem: React.FC<CardItemProps> = ({
   // Ícone e cor para o tipo do card
   const getProblemTypeIcon = () => {
     switch (problemType.toLowerCase()) {
-      case "feature":
+      case "new":
+        return { icon: <CreateRounded />, color: theme.palette.success.main };
+      case "info":
         return { icon: <Add />, color: theme.palette.success.main };
-      case "bug":
+      case "error":
         return { icon: <BugReport />, color: theme.palette.error.main };
-      case "refactor":
+      case "warning":
         return { icon: <Edit />, color: theme.palette.warning.main };
+      case "nova funcionalidade":
+        return { icon: <Add />, color: theme.palette.success.main };
+      case "correção de bug":
+        return { icon: <BugReport />, color: theme.palette.error.main };
+      case "correção urgente":
+        return { icon: <BugReport />, color: theme.palette.error.main };
+      case "documentação":
+        return { icon: <DocumentScanner />, color: theme.palette.info.main };
+      case "build/dependências":
+        return { icon: <Build />, color: theme.palette.info.main };
+      case "melhoria de performance":
+        return { icon: <FlashOn />, color: theme.palette.success.main };
+      case "estilo/formatação":
+        return { icon: <Edit />, color: theme.palette.warning.main };
+      case "refatoração":
+        return { icon: <Edit />, color: theme.palette.warning.main };
+      case "tarefas administrativas":
+        return { icon: <Settings />, color: theme.palette.info.main };
+      case "integração contínua":
+        return { icon: <Build />, color: theme.palette.info.main };
+      case "configurações/dados":
+        return { icon: <Settings />, color: theme.palette.info.main };
+      case "testes":
+        return { icon: <CheckCircle />, color: theme.palette.info.main };
+      case "em andamento":
+        return { icon: <CheckCircle />, color: theme.palette.info.main };
+      case "reversão":
+        return { icon: <CheckCircle />, color: theme.palette.info.main };
+      case "aperfeiçoamento":
+        return { icon: <FlashOn />, color: theme.palette.info.main };
+      case "segurança":
+        return { icon: <Security />, color: theme.palette.error.main };
+      case "infraestrutura/deploy":
+        return { icon: <Build />, color: theme.palette.info.main };
       default:
-        return { icon: <QuestionAnswer />, color: theme.palette.info.main };
+        return { icon: <CheckCircle />, color: theme.palette.info.main };
     }
-  };
+  };  
 
   const { icon: typeIcon, color: typeColor } = getProblemTypeIcon();
 
@@ -113,22 +155,8 @@ const CardItem: React.FC<CardItemProps> = ({
             }}
           />
 
-          {/* Categorias (cada uma com seu Chip) */}
-          {categories.map((category, index) => (
-            <Chip
-              key={index}
-              label={category}
-              size="small"
-              sx={{
-                bgcolor: theme.palette.grey[700],
-                color: theme.palette.common.white,
-                border: `1px solid ${theme.palette.grey[500]}`,
-              }}
-            />
-          ))}
         </Stack>
 
-        {/* Título do card */}
         <Typography
           variant="h6"
           color={theme.palette.text.primary}
@@ -143,7 +171,6 @@ const CardItem: React.FC<CardItemProps> = ({
           {title}
         </Typography>
 
-        {/* Autor */}
         <Typography
           variant="body2"
           sx={{ color: theme.palette.grey[400], fontStyle: "italic" }}
@@ -159,7 +186,14 @@ const CardItem: React.FC<CardItemProps> = ({
               <LinearProgress
                 variant="determinate"
                 value={progress}
-                sx={{ height: 6, borderRadius: 3 }}
+                sx={{
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: theme.palette.grey[300],
+                  '& .MuiLinearProgress-bar': {
+                    backgroundColor: theme.palette.success.main,
+                  },
+                }}
               />
             </Tooltip>
 
@@ -176,7 +210,7 @@ const CardItem: React.FC<CardItemProps> = ({
               />
             ) : (
               <Typography variant="body2" sx={{ mt: 0.5 }}>
-                <Comment sx={{ fontSize: 20, color: theme.palette.grey[400], marginRight: 1}} />
+                <Comment sx={{ fontSize: 20, color: theme.palette.grey[400], marginRight: 1 }} />
                 {resolvedChanges} de {totalChanges} alterações resolvidas
               </Typography>
             )}

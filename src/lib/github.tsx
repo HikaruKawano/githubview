@@ -113,7 +113,6 @@ async function GetResolvedReviewThreads(
     }
   `;
   
-  // A conversão para number é necessária pois o GraphQL espera um Int para pull_number
   const variables = { owner, repo, pull_number };
 
   const response = await octokit.graphql(query, variables) as {
@@ -126,7 +125,6 @@ async function GetResolvedReviewThreads(
 
   const threads = response.repository.pullRequest.reviewThreads.nodes;
   const resolvedCount = threads.filter(thread => thread.isResolved).length;
-  console.log("aaaaaaaaa", resolvedCount)
   return resolvedCount;
 }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ThemeProvider, Box, Stack, Avatar } from '@mui/material';
+import { ThemeProvider, Box, Stack, Avatar, CircularProgress } from '@mui/material';
 import { FetchOpenPullRequestsByRepo, GetRepos, GetUserData } from '@/lib/github';
 import { RepositoryList } from '../components/RepositoryList';
 import { RepositoryDialog } from '../components/RepositoryDialog';
@@ -16,39 +16,38 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [repos, setRepos] = useState<string[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
-  const [token, setToken] = useState<string>();
-  const [owner, setOwner] = useState<string>();
+  const [token, setToken] = useState<string | null>(null);
+  const [owner, setOwner] = useState<string | null>(null);
   const [userData, setUserData] = useState<any>(null);
   const [openModal, setOpenModal] = useState(false);
 
   const router = useRouter();
 
-  const getCookie = (name: string) => {
-    if (typeof window === 'undefined') return undefined;
-    return document.cookie
-      .split('; ')
-      .find((row) => row.startsWith(`${name}=`))
-      ?.split('=')[1] ?? undefined;
-  };
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const savedToken = getCookie('authToken');
-    const savedOwner = getCookie('githubOwner');
+    const savedToken = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('authToken='))
+      ?.split('=')[1] ?? null;
 
-    if (savedToken && savedOwner) {
+    const savedOwner = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('githubOwner='))
+      ?.split('=')[1] ?? null;
+
+    if (!savedToken || !savedOwner) {
+      router.push('/login');
+    } else {
       setToken(savedToken);
       setOwner(savedOwner);
-    } else {
-      router.push('/login');
     }
   }, [router]);
 
   useEffect(() => {
-    const loadData = async () => {
-      if (!token || !owner) return;
+    if (!token || !owner) return;
 
+    const loadData = async () => {
       try {
         const [reposData, prsData, userData] = await Promise.all([
           GetRepos(owner, token),
@@ -59,20 +58,37 @@ export default function Dashboard() {
         setRepos(reposData);
         setGroupedPullRequests(prsData);
         setUserData(userData);
-      } catch (error: any) {
-        Swal.fire("Erro", "Tokem ou usuario invalido", "error");
-        router.push('/login');
-      } finally {
         setLoading(false);
+      } catch (error: any) {
+        Swal.fire('Erro', 'Token ou usuário inválido', 'error');
+        router.push('/login');
       }
     };
 
     loadData();
   }, [token, owner]);
 
-  if (loading) return null;
+  if (!token || !owner) {
+    return null;
+  }
 
-  console.log(groupedPullRequests);
+  if (loading)
+    return (
+      <ThemeProvider theme={theme}>
+        <Box
+          sx={{
+            height: '100vh',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: theme.palette.background.default,
+          }}
+        >
+          <CircularProgress size={60} thickness={4} color="success" />
+        </Box>
+      </ThemeProvider>
+    );
+
   return (
     <ThemeProvider theme={theme}>
       <Stack direction="row" alignItems="center" justifyContent="end">
@@ -116,7 +132,11 @@ export default function Dashboard() {
           owner={owner}
           token={token}
         />
-        <RepositoryList groupedPullRequests={groupedPullRequests} loading={loading} />
+        <RepositoryList
+          groupedPullRequests={groupedPullRequests}
+          loading={loading}
+          onCardsReady={() => setLoading(false)}
+        />
         <RepositoryDialog open={openDialog} onClose={() => setOpenDialog(false)} repos={repos} />
       </Box>
     </ThemeProvider>
