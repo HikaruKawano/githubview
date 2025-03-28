@@ -81,7 +81,6 @@ const CardItem: React.FC<CardItemProps> = ({
 
   return (
     <Box
-      bgcolor="rgba(255, 255, 255, 0.05)"
       p={3}
       borderRadius={4}
       sx={{
@@ -90,8 +89,9 @@ const CardItem: React.FC<CardItemProps> = ({
         width: { xs: "100%", sm: 350, md: 400 },
         height: 300,
         border: approved ? `2px solid ${theme.palette.success.main}` : '1px solid rgba(255, 255, 255, 0.1)',
-        backdropFilter: 'blur(10px)',
-        boxShadow: theme.shadows[2],
+        background: 'linear-gradient(45deg, rgba(32, 32, 32, 0.9) 30%, rgba(40, 40, 40, 0.9) 90%)',
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)',
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
@@ -102,41 +102,46 @@ const CardItem: React.FC<CardItemProps> = ({
       {approved && (
         <Chip
           label="Aprovado"
-          icon={<DoneAll sx={{ color: theme.palette.success.contrastText }} />}
+          icon={<DoneAll />}
           size="small"
           sx={{
             position: "absolute",
             top: 16,
             right: 16,
-            bgcolor: theme.palette.success.main,
-            color: theme.palette.success.contrastText,
+            background: theme.palette.success.main,
+            color: theme.palette.common.white,
             border: `1px solid ${theme.palette.success.dark}`,
-            fontSize: '0.75rem',
             fontWeight: 600,
             zIndex: 1,
-            '& .MuiChip-label': { paddingRight: '6px' }
+            '& .MuiChip-icon': {
+              color: theme.palette.common.white
+            }
           }}
         />
       )}
 
-      <Stack spacing={1.5}>
+      <Stack spacing={2}>
         <Chip
           icon={typeIcon}
           label={problemType}
           size="small"
           sx={{
-            bgcolor: theme.palette.secondary.main,
+            bgcolor: 'rgba(255, 255, 255, 0.1)',
             color: theme.palette.text.primary,
-            border: `1px solid ${theme.palette.divider}`,
-            "& .MuiChip-icon": { color: typeColor }
+            border: '1px solid rgba(255, 255, 255, 0.23)',
+            "& .MuiChip-icon": { 
+              color: typeColor,
+              marginLeft: '8px'
+            },
+            alignSelf: 'flex-start'
           }}
         />
 
         <Typography 
           variant="h6" 
-          fontWeight={600} 
-          color="text.primary"
+          fontWeight={700}
           sx={{
+            color: theme.palette.common.white,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
@@ -146,7 +151,14 @@ const CardItem: React.FC<CardItemProps> = ({
           {title}
         </Typography>
 
-        <Typography variant="body2" color="text.secondary" fontStyle="italic">
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: 'rgba(255, 255, 255, 0.7)', 
+            fontStyle: 'italic',
+            lineHeight: 1.4
+          }}
+        >
           {autor || "Autor desconhecido"}
         </Typography>
 
@@ -159,7 +171,7 @@ const CardItem: React.FC<CardItemProps> = ({
                 sx={{
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: theme.palette.divider,
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
                   '& .MuiLinearProgress-bar': {
                     backgroundColor: theme.palette.success.main,
                   },
@@ -173,16 +185,20 @@ const CardItem: React.FC<CardItemProps> = ({
                 label="Concluído"
                 size="small"
                 sx={{
-                  bgcolor: theme.palette.success.main + '22',
+                  bgcolor: theme.palette.success.light + '22',
                   color: theme.palette.success.main,
-                  mt: 1.5,
-                  '& .MuiChip-icon': { fontSize: 18 }
+                  mt: 2,
+                  border: `1px solid ${theme.palette.success.light}`,
+                  '& .MuiChip-icon': { 
+                    color: theme.palette.success.main,
+                    fontSize: 18
+                  }
                 }}
               />
             ) : (
-              <Stack direction="row" alignItems="center" mt={1.5} spacing={0.5}>
-                <Comment fontSize="small" color="disabled" />
-                <Typography variant="body2" color="text.secondary">
+              <Stack direction="row" alignItems="center" mt={2} spacing={1}>
+                <Comment fontSize="small" sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                   {resolvedChanges}/{totalChanges} resolvidos
                 </Typography>
               </Stack>
@@ -191,7 +207,14 @@ const CardItem: React.FC<CardItemProps> = ({
         )}
       </Stack>
 
-      <Typography variant="caption" color="text.disabled" mt={2} display="block">
+      <Typography 
+        variant="caption" 
+        sx={{ 
+          color: 'rgba(255, 255, 255, 0.5)',
+          display: 'block',
+          mt: 2
+        }}
+      >
         {daysOpen > 0 ? `Aberto há ${daysOpen} dia(s)` : "Aberto hoje"}
       </Typography>
     </Box>

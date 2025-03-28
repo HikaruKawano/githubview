@@ -1,4 +1,3 @@
-// Dashboard.tsx
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -71,11 +70,14 @@ export default function Dashboard() {
       <Box
         sx={{
           minHeight: '100vh',
-          background: theme.palette.background.default,
-          p: 3
+          background: 'linear-gradient(45deg, #1a1a1a 30%, #2d2d2d 90%)',
+          p: 3,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center'
         }}
       >
-        <Stack direction="row" justifyContent="flex-end" sx={{ mb: 3 }}>
+        <Stack direction="row" justifyContent="flex-end" sx={{ mb: 3, width: '100%', maxWidth: 1440 }}>
           {userData?.avatar_url ? (
             <Avatar
               src={userData.avatar_url}
@@ -85,7 +87,11 @@ export default function Dashboard() {
                 height: 48,
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 cursor: 'pointer',
-                '&:hover': { transform: 'scale(1.05)' }
+                '&:hover': { 
+                  transform: 'scale(1.05)',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
+                },
+                transition: 'all 0.3s ease'
               }}
             />
           ) : (
@@ -96,31 +102,42 @@ export default function Dashboard() {
                 width: 48,
                 height: 48,
                 p: 1,
-                borderRadius: '50%'
+                borderRadius: '50%',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
               }}
             />
           )}
         </Stack>
 
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', height: '80vh' }}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            flexGrow: 1,
+            width: '100%'
+          }}>
             <CircularProgress
               size={60}
               thickness={4}
-              sx={{ color: theme.palette.success.main }}
+              sx={{ 
+                color: theme.palette.success.main,
+                '& circle': {
+                  strokeLinecap: 'round'
+                }
+              }}
             />
           </Box>
         ) : (
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'repeat(auto-fit, minmax(380px, 1fr))' },
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(auto-fit, minmax(380px, 1fr))'},
               gap: 3,
+              width: '100%',
               maxWidth: 1440,
-              mx: 'auto'
             }}
           >
-
             <UserProfile
               open={openModal}
               onClose={() => setOpenModal(false)}
@@ -130,8 +147,15 @@ export default function Dashboard() {
 
             <RepositoryList
               groupedPullRequests={groupedPullRequests}
-              onCardsReady={() => setLoading(false)} loading={false} />
-            <RepositoryDialog open={openDialog} onClose={() => setOpenDialog(false)} repos={repos} />
+              onCardsReady={() => setLoading(false)} 
+              loading={false} 
+            />
+            
+            <RepositoryDialog 
+              open={openDialog} 
+              onClose={() => setOpenDialog(false)} 
+              repos={repos} 
+            />
           </Box>
         )}
       </Box>

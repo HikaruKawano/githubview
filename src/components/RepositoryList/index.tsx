@@ -120,7 +120,7 @@ export function RepositoryList({ groupedPullRequests, loading, onCardsReady }: R
       {groupedPullRequests.map((group) => (
         <Stack key={group.repo} mb={4}>
           <Typography fontSize={'1.2rem'} children={group.repo} my={2} />
-          <Stack width={'100%'} display={'flex'} flexDirection={'row'} gap={1} flexWrap={'wrap'}>
+          <Stack width={'100%'} display={'flex'} flexDirection={'row'} gap={2} flexWrap={'wrap'}>
             {group.prs.map((prs) => {
               const category = categorizePR(prs.title);
               return (
