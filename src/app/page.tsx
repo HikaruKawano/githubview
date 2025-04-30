@@ -1,26 +1,194 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ThemeProvider, Box, Stack, Avatar, CircularProgress } from '@mui/material';
-import { FetchOpenPullRequestsByRepo, GetRepos, GetUserData } from '@/lib/github';
 import { RepositoryList } from '../components/RepositoryList';
 import { RepositoryDialog } from '../components/RepositoryDialog';
-import theme from '@/lib/theme';
+import theme from '@/services/theme';
 import { Person } from '@mui/icons-material';
 import UserProfile from '@/components/User';
 import Swal from 'sweetalert2';
+import { io, Socket } from 'socket.io-client';
+import { CreateOctokit } from '@/services/github/octokit';
+import { GetUserData } from '@/services/github/userService';
+import { GetRepos } from '@/services/github/repoService';
+import { FetchOpenPullRequestsByOwner, FetchSinglePullRequest } from '@/services/github/pullRequestService';
 
 export default function Dashboard() {
-  const [groupedPullRequests, setGroupedPullRequests] = useState<any[]>([]);
+  const [reposData, setReposData] = useState<string[]>([]);
+  const [prsData, setPrsData] = useState<any[]>([]);
+  const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [repos, setRepos] = useState<string[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [token, setToken] = useState<string | undefined>(undefined);
   const [owner, setOwner] = useState<string | undefined>(undefined);
-  const [userData, setUserData] = useState<any>(null);
   const [openModal, setOpenModal] = useState(false);
+  const [cardLoading, setCardLoading] = useState(false);
+  const [loadingPrIds, setLoadingPrIds] = useState<number[]>([]);
 
   const router = useRouter();
+
+  const removePrIdFromLoading = (id: number) => {
+    setLoadingPrIds(prev => prev.filter(prId => prId !== id));
+  };
+
+  const handleUpdatePullRequest = useCallback(async (data: any) => {
+    if (!token || !owner) return;
+
+    console.log('Dados do acton:', data.action);
+
+    try {
+      const octokit = CreateOctokit(token);
+
+      const repoName = data.repository?.name;
+      const prId = data.pull_request?.id;
+      const prNumber = data.pull_request?.number;
+
+      if (!repoName || !prId) {
+        return;
+      }
+
+      if (data.action === 'closed') {
+        setPrsData(prevPrsData => {
+          const updatedGroups = prevPrsData.map(group => {
+            if (group.repo === repoName) {
+              const filteredPrs = group.prs.filter((pr: { id: number }) => pr.id !== prId);
+              return { ...group, prs: filteredPrs };
+            }
+            return group;
+          });
+          return updatedGroups.filter(group => group.prs.length > 0);
+        });
+        return;
+      }
+
+      const checkCommentsDifference = (freshPrData: { repo?: string; prs: any; }) => {
+        let commentsChanged = false;
+      
+        freshPrData.prs.forEach((freshPr: { id: any; comments: any }) => {
+          const prsPr = prsData.find((prData) =>
+            prData.prs.some((pr: { id: number }) => pr.id === freshPr.id)
+          );
+          if (prsPr) {
+            const prInPrs = prsPr.prs.find((pr: { id: number }) => pr.id === freshPr.id);
+            if (prInPrs) {
+              if (data.action === 'created') {
+                prInPrs.comments ++;
+              } else if (data.action === 'deleted') {
+                prInPrs.comments --;
+              }
+      
+              if (prInPrs.comments !== freshPr.comments) {
+                commentsChanged = true;
+              }
+            }
+          }
+        });
+      
+        return commentsChanged;
+      };
+      
+      const waitForDataUpdate = async (sum: number) => {
+        await new Promise(resolve => setTimeout(resolve, 10000 + sum));
+      };
+      
+      if (['created', 'deleted'].includes(data.action)) {
+        setCardLoading(true);
+        setLoadingPrIds(prev => prev.includes(prId) ? prev : [...prev, prId]);
+      
+        let freshPrData;
+        let attemptCount = 0;
+      
+        while (attemptCount < 3) {  // Limitar o número de tentativas para evitar loop infinito
+          await waitForDataUpdate(10000);
+          freshPrData = await FetchSinglePullRequest(octokit, owner, repoName, prNumber);
+          
+          if (checkCommentsDifference(freshPrData)) {
+            break;  // Se os comentários foram alterados, sair do loop
+          }
+
+          attemptCount++;
+        }
+      
+        if (!freshPrData || !freshPrData?.prs?.[0]) {
+          console.warn('PR atualizado não encontrado.');
+          removePrIdFromLoading(prId);
+          return;
+        }
+      
+        const freshPr = freshPrData?.prs?.[0];
+      
+        setPrsData(prevPrsData =>
+          prevPrsData.map(group =>
+            group.repo === repoName
+              ? {
+                  ...group,
+                  prs: group.prs.map((pr: { id: number }) =>
+                    pr.id === freshPr.id ? freshPr : pr
+                  )
+                }
+              : group
+          )
+        );
+      
+        setCardLoading(false);
+        removePrIdFromLoading(prId);
+      }
+      
+      if (data.action === 'opened') {
+        setLoadingPrIds(prev => prev.includes(prId) ? prev : [...prev, prId]);
+        const freshPrData = await FetchSinglePullRequest(octokit, owner, repoName, prNumber);
+        const freshPr = freshPrData?.prs?.[0];
+
+        if (!freshPr) {
+          removePrIdFromLoading(prId);
+          return;
+        }
+
+        setPrsData(prevPrsData => {
+          const repoExists = prevPrsData.some(group => group.repo === repoName);
+          if (repoExists) {
+            return prevPrsData.map(group =>
+              group.repo === repoName
+                ? {
+                    ...group,
+                    prs: group.prs.some((pr: { id: number }) => pr.id === freshPr.id)
+                      ? group.prs.map((pr: { id: number }) => pr.id === freshPr.id ? freshPr : pr)
+                      : [...group.prs, freshPr]
+                  }
+                : group
+            );
+          } else {
+            return [...prevPrsData, { repo: repoName, prs: [freshPr] }];
+          }
+        });
+        removePrIdFromLoading(prId);
+        return;
+      }
+
+      const freshPrData = await FetchSinglePullRequest(octokit, owner, repoName, prNumber);
+      const freshPr = freshPrData?.prs?.[0];
+
+      if (!freshPr) {
+        return;
+      }
+
+      setPrsData(prevPrsData =>
+        prevPrsData.map(group =>
+          group.repo === repoName
+            ? {
+                ...group,
+                prs: group.prs.map((pr: { id: number }) =>
+                  pr.id === freshPr.id ? freshPr : pr
+                )
+              }
+            : group
+        )
+      );
+    } catch (error) {
+      console.error('Erro ao atualizar PR:', error);
+    }
+  }, [token, owner]);
 
   useEffect(() => {
     const savedToken = document.cookie
@@ -44,17 +212,38 @@ export default function Dashboard() {
   useEffect(() => {
     if (!token || !owner) return;
 
+    const socket: Socket = io({ path: '/api/socket' });
+
+    socket.on('connect', () => {});
+
+    socket.on('new-webhook-event', (data) => {
+      handleUpdatePullRequest(data);
+    });
+
+    socket.on('disconnect', () => {});
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [token, owner, handleUpdatePullRequest]);
+
+  useEffect(() => {
+    if (!token || !owner) return;
+
     const loadData = async () => {
       try {
-        const [reposData, prsData, userData] = await Promise.all([
-          GetRepos(owner, token),
-          FetchOpenPullRequestsByRepo(owner, token),
-          GetUserData(owner, token),
-        ]);
+        const octokit = CreateOctokit(token);
 
-        setRepos(reposData);
-        setGroupedPullRequests(prsData);
-        setUserData(userData);
+        const repos = await GetRepos(octokit, owner);
+        setReposData(repos);
+
+        const prsPromises = await FetchOpenPullRequestsByOwner(octokit, owner);
+        const prsResults = await Promise.all(prsPromises);
+        setPrsData(prsResults);
+
+        const user = await GetUserData(octokit, owner);
+        setUserData(user);
+
         setLoading(false);
       } catch (error) {
         Swal.fire('Erro', 'Token ou usuário inválido', 'error');
@@ -87,7 +276,7 @@ export default function Dashboard() {
                 height: 48,
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 cursor: 'pointer',
-                '&:hover': { 
+                '&:hover': {
                   transform: 'scale(1.05)',
                   boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
                 },
@@ -110,21 +299,13 @@ export default function Dashboard() {
         </Stack>
 
         {loading ? (
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center',
-            flexGrow: 1,
-            width: '100%'
-          }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexGrow: 1, width: '100%' }}>
             <CircularProgress
               size={60}
               thickness={4}
-              sx={{ 
+              sx={{
                 color: theme.palette.success.main,
-                '& circle': {
-                  strokeLinecap: 'round'
-                }
+                '& circle': { strokeLinecap: 'round' }
               }}
             />
           </Box>
@@ -132,7 +313,7 @@ export default function Dashboard() {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'repeat(auto-fit, minmax(380px, 1fr))'},
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(auto-fit, minmax(380px, 1fr))' },
               gap: 3,
               width: '100%',
               maxWidth: 1440,
@@ -146,15 +327,16 @@ export default function Dashboard() {
             />
 
             <RepositoryList
-              groupedPullRequests={groupedPullRequests}
-              onCardsReady={() => setLoading(false)} 
-              loading={false} 
+              groupedPullRequests={prsData}
+              onCardsReady={() => setLoading(false)}
+              loading={cardLoading}
+              loadingPrIds={loadingPrIds}
             />
-            
-            <RepositoryDialog 
-              open={openDialog} 
-              onClose={() => setOpenDialog(false)} 
-              repos={repos} 
+
+            <RepositoryDialog
+              open={openDialog}
+              onClose={() => setOpenDialog(false)}
+              repos={reposData}
             />
           </Box>
         )}

@@ -2,12 +2,13 @@ import { useEffect } from 'react';
 import { Stack, Typography, Box } from '@mui/material';
 import { PullRequestCard } from '../PullRequestCard';
 import CardItem from '../Card';
+import CardItemSkeleton from '../CardSkeleton';
 
 interface RepositoryListProps {
   groupedPullRequests: Array<{
     repo: string;
     prs: Array<{
-      id: string;
+      id: number;
       title: string;
       owner?: string;
       prUrl: string;
@@ -18,6 +19,7 @@ interface RepositoryListProps {
     }>;
   }>;
   loading: boolean;
+  loadingPrIds?: number[];
   onCardsReady?: () => void;
 }
 
@@ -92,25 +94,17 @@ const getProblemType = (categoryLabel: string) => {
   }
 };
 
-export function RepositoryList({ groupedPullRequests, loading, onCardsReady }: RepositoryListProps) {
+export function RepositoryList({ groupedPullRequests, loading, loadingPrIds = [], onCardsReady }: RepositoryListProps) {
   useEffect(() => {
     if (!loading && groupedPullRequests.length > 0 && onCardsReady) {
       onCardsReady();
     }
   }, [loading, groupedPullRequests, onCardsReady]);
 
-  if (loading) {
+  if (loading && groupedPullRequests.length === 0) {
     return (
       <Stack alignItems="center" justifyContent="center" flex={1} bgcolor="background.default" p={2}>
         <Typography color="text.primary">Carregando...</Typography>
-      </Stack>
-    );
-  }
-
-  if (groupedPullRequests.length === 0) {
-    return (
-      <Stack alignItems="center" justifyContent="center" flex={1} bgcolor="background.default" p={2}>
-        <Typography color="text.primary">Nenhum PR aberto encontrado.</Typography>
       </Stack>
     );
   }
@@ -120,23 +114,29 @@ export function RepositoryList({ groupedPullRequests, loading, onCardsReady }: R
       {groupedPullRequests.map((group) => (
         <Stack key={group.repo} mb={4}>
           <Typography fontSize={'1.2rem'} children={group.repo} my={2} />
-          <Stack width={'100%'} display={'flex'} flexDirection={'row'} gap={2} flexWrap={'wrap'}>
+          <Stack width={'100%'} display="flex" flexDirection="row" gap={2} flexWrap="wrap">
             {group.prs.map((prs) => {
               const category = categorizePR(prs.title);
+              const isLoading = loadingPrIds.includes(prs.id);
+
               return (
                 <Box key={prs.id} sx={{ width: { xs: '100%', sm: 300, md: 'auto' } }}>
-                  <a href={prs.prUrl} target="_blank" rel="noreferrer">
-                    <CardItem
-                      title={prs.title}
-                      autor={prs.owner}
-                      totalChanges={prs.comments}
-                      categories={[category]}
-                      problemType={getProblemType(category)}
-                      daysOpen={prs.daysOpen}
-                      approved={prs.approved}
-                      resolvedChanges={prs.resolvedComments}
-                    />
-                  </a>
+                  {isLoading ? (
+                    <CardItemSkeleton />
+                  ) : (
+                    <a href={prs.prUrl} target="_blank" rel="noreferrer">
+                      <CardItem
+                        title={prs.title}
+                        autor={prs.owner}
+                        totalChanges={prs.comments}
+                        categories={[category]}
+                        problemType={getProblemType(category)}
+                        daysOpen={prs.daysOpen}
+                        approved={prs.approved}
+                        resolvedChanges={prs.resolvedComments}
+                      />
+                    </a>
+                  )}
                 </Box>
               );
             })}
