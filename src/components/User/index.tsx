@@ -13,7 +13,8 @@ import {
   Backdrop
 } from "@mui/material";
 import { useRouter } from "next/navigation";
-import { GetUserData } from "@/lib/github";
+import { GetUserData } from "@/services/github/userService";
+import { CreateOctokit } from "@/services/github/octokit";
 import CloseIcon from "@mui/icons-material/Close";
 
 interface UserProfileModalProps {
@@ -36,8 +37,10 @@ export default function UserProfileModal({
   useEffect(() => {
     if (!open || !owner || !token) return;
 
+    var octokit = CreateOctokit(token);
+
     const fetchUserData = async () => {
-      const data = await GetUserData(owner, token);
+      const data = await GetUserData(octokit, owner);
       setUser(data);
       setLoading(false);
     };
