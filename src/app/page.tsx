@@ -35,8 +35,6 @@ export default function Dashboard() {
   const handleUpdatePullRequest = useCallback(async (data: any) => {
     if (!token || !owner) return;
 
-    console.log('Dados do acton:', data.action);
-
     try {
       const octokit = CreateOctokit(token);
 
