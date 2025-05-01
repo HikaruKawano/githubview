@@ -34,7 +34,7 @@ export default function Dashboard() {
 
   const handleUpdatePullRequest = useCallback(async (data: any) => {
     if (!token || !owner) return;
-
+    
     try {
       const octokit = CreateOctokit(token);
 
