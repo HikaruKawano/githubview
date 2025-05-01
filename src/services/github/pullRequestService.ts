@@ -12,8 +12,6 @@ async function GetReviewCommentsCount(octokit: Octokit, owner: string, repo: str
       per_page: 100,
     });
 
-    console.log("Comments data:", data); // Log the comments data for debugging
-
     return data.length;
   } catch {
     throw new Error("Erro ao buscar comentários do PR.");
@@ -83,7 +81,7 @@ export async function FetchSinglePullRequest(
       await GetResolvedReviewThreads(octokit, owner, repo, prNumber),
       await IsPullRequestApproved(octokit, owner, repo, prNumber),
     ]);
-    
+
     const createdAt = new Date(data.created_at);
     const now = new Date();
     const daysOpen = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
