@@ -41,7 +41,6 @@ export default function UserProfileModal({
 
     const fetchUserData = async () => {
       const data = await GetUserData(octokit, owner);
-      console.log("User data fetched:", data);
       setUser(data);
       setLoading(false);
     };
