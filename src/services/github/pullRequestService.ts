@@ -107,6 +107,8 @@ export async function FetchSinglePullRequest(
   }
 }
 
+import { Octokit } from "octokit";
+
 export async function FetchOpenPullRequests(octokit: Octokit, owner: string, repo: string) {
   try {
     const { data } = await octokit.request("GET /repos/{owner}/{repo}/pulls", {
