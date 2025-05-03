@@ -107,6 +107,8 @@ export async function FetchSinglePullRequest(
   }
 }
 
+import { Octokit } from "octokit";
+
 export async function FetchOpenPullRequests(octokit: Octokit, owner: string, repo: string) {
   try {
     const { data } = await octokit.request("GET /repos/{owner}/{repo}/pulls", {
@@ -148,8 +150,11 @@ export async function FetchOpenPullRequests(octokit: Octokit, owner: string, rep
     );
 
     return { repo, prs: pullRequests };
-  } catch {
-    throw new Error("Erro ao buscar PRs do repositório.");
+  } catch (err: any) {
+    if (err.status === 404) {
+      return null; // ignora o repositório com 404
+    }
+    return null; // ou lance novamente, se preferir quebrar nesses casos
   }
 }
 
