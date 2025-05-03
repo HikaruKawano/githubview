@@ -14,7 +14,8 @@ const handler = NextAuth({
       authorization: {
         // Solicitar permissões adicionais para acessar organizações
         params: {
-          scope: "read:org user repo",  // Permissões necessárias para ler dados de organização
+          scope: "read:user user:email read:org repo  repo_deployment workflow", // Permissões necessárias para acessar repositórios e organizações         
+          prompt: "consent"          // Permissões necessárias para ler dados de organização
         },
       },
     }),
