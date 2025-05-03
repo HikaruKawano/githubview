@@ -154,7 +154,7 @@ export async function FetchOpenPullRequests(octokit: Octokit, owner: string, rep
 }
 
 export async function FetchOpenPullRequestsByOwner(octokit: Octokit, owner: string) {
-  const repos = await GetRepos(octokit, owner);
+  const repos = await GetRepos(octokit);
   if (!repos.length) return [];
 
   const allPullRequests = await Promise.all(
