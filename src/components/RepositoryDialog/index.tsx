@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogTitle, IconButton, Stack, Typography, Chec
 interface RepositoryDialogProps {
   open: boolean;
   onClose: () => void;
-  repos: string[];
+  repos: {name: string; pulls_url: string}[];
 }
 
 export function RepositoryDialog({ open, onClose, repos }: RepositoryDialogProps) {
@@ -19,9 +19,9 @@ export function RepositoryDialog({ open, onClose, repos }: RepositoryDialogProps
 
       <DialogContent>
         {repos.map((repo) => (
-          <MuiCard key={repo} sx={{ marginBottom: 2, padding: 1, borderRadius: 3, boxShadow: 1 }}>
+          <MuiCard key={repo.name} sx={{ marginBottom: 2, padding: 1, borderRadius: 3, boxShadow: 1 }}>
             <Stack flexDirection="row" alignItems="center" justifyContent="space-between">
-              <Typography variant="h6">{repo}</Typography>
+              <Typography variant="h6">{repo.name}</Typography>
               <Checkbox inputProps={{ 'aria-label': 'controlled' }} />
             </Stack>
           </MuiCard>

@@ -1,21 +1,25 @@
 // services/github/myRepoService.ts
 import { Octokit } from "octokit";
 
-export async function GetRepos(octokit: Octokit): Promise<string[]> {
+export async function GetRepos(octokit: Octokit): Promise<{ name: string; pulls_url: string }[]> {
   try {
-    const repos: string[] = [];
+    const repos: { name: string; pulls_url: string }[] = [];
     let page = 1;
 
-    // Paginação: obtém até 100 repos por página enquanto houver resultados
     while (true) {
       const { data } = await octokit.request("GET /user/repos", {
-        visibility: "all",    // 'all' retorna públicos e privados
-        per_page: 100,        // máximo permitido
+        visibility: "all",
+        per_page: 20,
         page,
       });
 
       if (data.length === 0) break;
-      repos.push(...data.map((repo: any) => repo.name));
+
+      repos.push(...data.map((repo: any) => ({
+        name: repo.name,
+        pulls_url: repo.pulls_url.replace("{/number}", "")
+      })));
+
       page++;
     }
 
