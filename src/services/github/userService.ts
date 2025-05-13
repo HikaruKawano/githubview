@@ -4,7 +4,7 @@ import { Octokit } from "octokit";
 export async function GetUserData(octokit: Octokit, username: string) {
   try {
     const { data } = await octokit.request("GET /users/{username}", {
-      username: username[0],
+      username: username,
       headers: { "X-GitHub-Api-Version": "2022-11-28" },
     });
 
