@@ -2,12 +2,13 @@
 import { Octokit } from "octokit";
 import { GetRepos } from "./repoService";
 
-async function GetReviewCommentsCount(octokit: Octokit, owner: string, repo: string, pullNumber: number) {
+async function GetReviewCommentsCount(octokit: Octokit, url: string, pullNumber?: number) {
   try {
-    const { data } = await octokit.request("GET /repos/{owner}/{repo}/pulls/{pull_number}/comments", {
-      owner,
-      repo,
-      pull_number: pullNumber,
+    const endpoint = pullNumber === undefined
+      ? `${url}/comments`
+      : `${url}/${pullNumber}/comments`;
+
+    const { data } = await octokit.request(`GET ${endpoint}`, {
       headers: { "X-GitHub-Api-Version": "2022-11-28" },
       per_page: 100,
     });
@@ -18,22 +19,23 @@ async function GetReviewCommentsCount(octokit: Octokit, owner: string, repo: str
   }
 }
 
-async function IsPullRequestApproved(octokit: Octokit, owner: string, repo: string, pullNumber: number) {
+async function IsPullRequestApproved(octokit: Octokit, url: string, pullNumber?: number) {
+  const endpoint = pullNumber === undefined
+  ? `${url}/comments`
+  : `${url}/${pullNumber}/reviews`;
   try {
-    const { data } = await octokit.request("GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews", {
-      owner,
-      repo,
-      pull_number: pullNumber,
+    const { data } = await octokit.request(`GET ${endpoint}`, {
       headers: { "X-GitHub-Api-Version": "2022-11-28" },
     });
 
-    return data.some((review) => review.state === "APPROVED");
+    return data.some((review: any) => review.state === "APPROVED");
   } catch {
     throw new Error("Erro ao buscar revisões do PR.");
   }
 }
 
-async function GetResolvedReviewThreads(octokit: Octokit, owner: string, repo: string, pullNumber: number) {
+async function GetResolvedReviewThreads(octokit: Octokit, repo: { name: string; pulls_url: string }, pullNumber: number) {
+  let owner = repo.pulls_url.match(/(?<=https:\/\/api\.github\.com\/repos\/)[^\/]+/);
   const query = `
     query($owner: String!, $repo: String!, $pull_number: Int!) {
       repository(owner: $owner, name: $repo) {
@@ -48,7 +50,7 @@ async function GetResolvedReviewThreads(octokit: Octokit, owner: string, repo: s
     }
   `;
 
-  const variables = { owner, repo, pull_number: pullNumber };
+  const variables = { owner: owner![0], repo: repo.name, pull_number: pullNumber };
 
   const response = await octokit.graphql(query, variables) as {
     repository: {
@@ -64,22 +66,18 @@ async function GetResolvedReviewThreads(octokit: Octokit, owner: string, repo: s
 
 export async function FetchSinglePullRequest(
   octokit: Octokit,
-  owner: string,
-  repo: string,
-  prNumber: number
+  repo: { name: string; pulls_url: string },
+  prNumber: number,
 ) {
   try {
-    const { data } = await octokit.request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
-      owner,
-      repo,
-      pull_number: prNumber, // << o correto aqui
+    const { data } = await octokit.request(`GET ${repo.pulls_url}`, {
       headers: { "X-GitHub-Api-Version": "2022-11-28" },
     });
 
     const [comments, resolvedComments, approved] = await Promise.all([
-      await GetReviewCommentsCount(octokit, owner, repo, prNumber),
-      await GetResolvedReviewThreads(octokit, owner, repo, prNumber),
-      await IsPullRequestApproved(octokit, owner, repo, prNumber),
+      await GetReviewCommentsCount(octokit, repo.pulls_url),
+      await GetResolvedReviewThreads(octokit, repo, prNumber),
+      await IsPullRequestApproved(octokit, repo.pulls_url),
     ]);
 
     const createdAt = new Date(data.created_at);
@@ -107,11 +105,9 @@ export async function FetchSinglePullRequest(
   }
 }
 
-export async function FetchOpenPullRequests(octokit: Octokit, owner: string, repo: string) {
+export async function FetchOpenPullRequests(octokit: Octokit, repo: { name: string; pulls_url: string }) {
   try {
-    const { data } = await octokit.request("GET /repos/{owner}/{repo}/pulls", {
-      owner,
-      repo,
+    const { data } = await octokit.request(`GET ${repo.pulls_url}`, {
       headers: { "X-GitHub-Api-Version": "2022-11-28" },
       per_page: 100,
       state: "open",
@@ -120,11 +116,11 @@ export async function FetchOpenPullRequests(octokit: Octokit, owner: string, rep
     if (!data.length) return null;
 
     const pullRequests = await Promise.all(
-      data.map(async (pr) => {
+      data.map(async (pr: any) => {
         const [comments, resolvedComments, approved] = await Promise.all([
-          GetReviewCommentsCount(octokit, owner, repo, pr.number),
-          GetResolvedReviewThreads(octokit, owner, repo, pr.number),
-          IsPullRequestApproved(octokit, owner, repo, pr.number),
+          GetReviewCommentsCount(octokit, repo.pulls_url, pr.number),
+          GetResolvedReviewThreads(octokit, repo, pr.number),
+          IsPullRequestApproved(octokit, repo.pulls_url, pr.number),
         ]);
 
         const createdAt = new Date(pr.created_at);
@@ -147,7 +143,7 @@ export async function FetchOpenPullRequests(octokit: Octokit, owner: string, rep
       })
     );
 
-    return { repo, prs: pullRequests };
+    return { repo: repo.name, prs: pullRequests };
   } catch (err: any) {
     if (err.status === 404) {
       return null; // ignora o repositório com 404
@@ -156,12 +152,12 @@ export async function FetchOpenPullRequests(octokit: Octokit, owner: string, rep
   }
 }
 
-export async function FetchOpenPullRequestsByOwner(octokit: Octokit, owner: string) {
+export async function FetchOpenPullRequestsByOwner(octokit: Octokit) {
   const repos = await GetRepos(octokit);
   if (!repos.length) return [];
 
   const allPullRequests = await Promise.all(
-    repos.map((repo) => FetchOpenPullRequests(octokit, owner, repo))
+    repos.map((repo) => FetchOpenPullRequests(octokit, repo))
   );
 
   return allPullRequests.filter(Boolean);

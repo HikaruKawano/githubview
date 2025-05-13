@@ -17,7 +17,7 @@
 
   export default function Dashboard() {
     const { data: session, status } = useSession();
-    const [reposData, setReposData] = useState<string[]>([]);
+    const [reposData, setReposData] = useState<{name: string; pulls_url: string}[]>([]);
     const [prsData, setPrsData] = useState<any[]>([]);
     const [userData, setUserData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -42,6 +42,7 @@
         const repoName = data.repository?.name;
         const prId = data.pull_request?.id;
         const prNumber = data.pull_request?.number;
+        const url = data.pull_request?.url;
 
         if (!repoName || !prId) return;
 
@@ -82,7 +83,7 @@
 
           while (attempt < 3) {
             await new Promise(res => setTimeout(res, 10000));
-            freshPrData = await FetchSinglePullRequest(octokit, owner, repoName, prNumber);
+            freshPrData = await FetchSinglePullRequest(octokit, { name: repoName, pulls_url: url } , prNumber );
             if (checkCommentsDifference(freshPrData)) break;
             attempt++;
           }
@@ -111,7 +112,7 @@
 
         if (data.action === 'opened') {
           setLoadingPrIds(prev => prev.includes(prId) ? prev : [...prev, prId]);
-          const freshPrData = await FetchSinglePullRequest(octokit, owner, repoName, prNumber);
+          const freshPrData = await FetchSinglePullRequest(octokit, { name: repoName, pulls_url: url }, prNumber);
           const freshPr = freshPrData?.prs?.[0];
           if (!freshPr) {
             removePrIdFromLoading(prId);
@@ -140,7 +141,7 @@
           return;
         }
 
-        const freshPrData = await FetchSinglePullRequest(octokit, owner, repoName, prNumber);
+        const freshPrData = await FetchSinglePullRequest(octokit, { name: repoName, pulls_url: url }, prNumber);
         const freshPr = freshPrData?.prs?.[0];
         if (!freshPr) return;
 
@@ -195,7 +196,7 @@
         try {
           const octokit = CreateOctokit(token);
           const repos = await GetRepos(octokit);
-          const prsPromises = await FetchOpenPullRequestsByOwner(octokit, owner);
+          const prsPromises = await FetchOpenPullRequestsByOwner(octokit);
           const prsResults = await Promise.all(prsPromises);
           const user = await GetUserData(octokit, owner);
 

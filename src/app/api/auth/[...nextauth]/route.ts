@@ -12,21 +12,19 @@ const handler = NextAuth({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
       authorization: {
-        // Solicitar permissões adicionais para acessar organizações
         params: {
-          scope: "read:user user:email read:org repo  repo_deployment workflow", // Permissões necessárias para acessar repositórios e organizações         
-          prompt: "consent"          // Permissões necessárias para ler dados de organização
+          scope: "read:user user:email read:org repo  repo_deployment workflow", 
+          prompt: "consent"         
         },
       },
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
-    signIn: "/login", // Página de login personalizada (se houver)
+    signIn: "/login",
   },
   callbacks: {
     async jwt({ token, account, user }) {
-      // Adiciona o token e o githubOwner no JWT se ainda não estiverem
       if (account && user) {
         token.accessToken = account.access_token;
         token.githubOwner = user.name; // Ou qualquer outra informação relevante
@@ -34,14 +32,12 @@ const handler = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      // Tipando o token corretamente
       session.user.token = token.accessToken as string | undefined;
       session.user.githubOwner = token.githubOwner as string | undefined;
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Garantir que o redirecionamento após login vá para a página inicial
-      return baseUrl; // Redireciona para a URL base (geralmente a página inicial)
+      return baseUrl;
     },
   },
 });
