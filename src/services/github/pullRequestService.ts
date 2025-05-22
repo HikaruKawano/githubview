@@ -126,6 +126,10 @@ export async function FetchOpenPullRequests(octokit: Octokit, repo: { name: stri
         const createdAt = new Date(pr.created_at);
         const now = new Date();
         const daysOpen = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+        const reviwer = pr.requested_reviewers.map((reviewer: any) => ({
+          name: reviewer.login,
+          avatarUrl: reviewer.avatar_url,
+        }));
 
         return {
           id: pr.id,
@@ -139,6 +143,7 @@ export async function FetchOpenPullRequests(octokit: Octokit, repo: { name: stri
           resolvedComments,
           createdAt: pr.created_at,
           daysOpen,
+          reviwer
         };
       })
     );

@@ -4,6 +4,11 @@ import { PullRequestCard } from '../PullRequestCard';
 import CardItem from '../Card';
 import CardItemSkeleton from '../CardSkeleton';
 
+interface Reviwer {
+  name: string;
+  avatarUrl?: string;
+}
+
 interface RepositoryListProps {
   groupedPullRequests: Array<{
     repo: string;
@@ -16,6 +21,7 @@ interface RepositoryListProps {
       comments: number;
       daysOpen: number;
       resolvedComments: number;
+      reviwer: Reviwer[];
     }>;
   }>;
   loading: boolean;
@@ -118,7 +124,6 @@ export function RepositoryList({ groupedPullRequests, loading, loadingPrIds = []
             {group.prs.map((prs) => {
               const category = categorizePR(prs.title);
               const isLoading = loadingPrIds.includes(prs.id);
-
               return (
                 <Box key={prs.id} sx={{ width: { xs: '100%', sm: 300, md: 'auto' } }}>
                   {isLoading ? (
@@ -134,6 +139,7 @@ export function RepositoryList({ groupedPullRequests, loading, loadingPrIds = []
                         daysOpen={prs.daysOpen}
                         approved={prs.approved}
                         resolvedChanges={prs.resolvedComments}
+                        reviwer={prs.reviwer}
                       />
                     </a>
                   )}
