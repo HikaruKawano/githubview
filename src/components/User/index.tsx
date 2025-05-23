@@ -24,7 +24,7 @@ interface UserProfileModalProps {
   onClose: () => void;
 }
 
-export default function UserProfileModal({
+export default function   UserProfileModal({
   owner,
   token,
   open,
@@ -184,7 +184,6 @@ export default function UserProfileModal({
                 '&:hover': {
                   transform: 'translateY(-1px)'
                 },
-                transition: 'all 0.3s ease'
               }}
             >
               Logout
