@@ -2,483 +2,29 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ThemeProvider, Box, Stack, Avatar, CircularProgress,
-  Accordion, AccordionSummary, AccordionDetails,
-  Typography, TextField, Button, Chip, Divider,
-  FormControl, InputLabel, Select, MenuItem, InputAdornment,
-  Autocomplete,
-  Checkbox,
-  ListItemText,
-  type SelectChangeEvent
+  ThemeProvider, Box, Stack, Avatar, CircularProgress, Button
 } from '@mui/material';
-import { RepositoryList } from '../components/RepositoryList';
-import { Person, ExpandMore, FilterAlt, Close, Search, Inbox } from '@mui/icons-material';
-import Swal from 'sweetalert2';
+import { Person, Feedback } from '@mui/icons-material';
+import { SessionProvider, useSession } from 'next-auth/react';
 import { io, Socket } from 'socket.io-client';
+
+import {
+  AdvancedFilters, EmptyState, QuickFilterBar, SuggestionButtonWithModal, filterPRs
+} from '../components/Dashboard/index';
 import { CreateOctokit } from '@/services/github/octokit';
 import { GetUserData } from '@/services/github/userService';
 import { GetRepos } from '@/services/github/repoService';
-import { FetchOpenPullRequestsByOwner, FetchSinglePullRequest } from '@/services/github/pullRequestService';
-import { SessionProvider, useSession } from 'next-auth/react';
+import {
+  FetchOpenPullRequestsByOwner,
+  FetchSinglePullRequest
+} from '@/services/github/pullRequestService';
 import theme from '@/services/theme';
+import { Filters, RepoPRsGroup } from '../components/Dashboard/types';
+import Swal from 'sweetalert2';
+import { RepositoryList } from '@/components/RepositoryList';
+import UserProfileModal from '@/components/User';
 
-interface PullRequest {
-  id: number;
-  title: string;
-  url: string;
-  state: string;
-  owner: string;
-  prUrl: string;
-  approved: boolean;
-  comments: number;
-  resolvedComments: number;
-  createdAt: string;
-  daysOpen: number;
-  reviwer: reviwer[]; // Added reviewer property to match RepositoryList expectations
-}
-
-interface reviwer {
-  name: string;
-  avatarUrl: string;
-}
-
-interface RepoPRsGroup {
-  repo: string;
-  prs: PullRequest[];
-}
-
-interface Filters {
-  repoName: string;
-  owner: string | string[];
-  approved: 'all' | 'approved' | 'not-approved';
-  reviewers: string[];
-}
-
-const AdvancedFilters = ({ 
-  filters, 
-  setFilters,
-  allRepos,
-  allOwners,
-  allReviewers
-}: {
-  filters: Filters;
-  setFilters: (filters: Filters) => void;
-  allRepos: string[];
-  allOwners: string[];
-  allReviewers: string[];
-}) => {
-  const [expanded, setExpanded] = useState(false);
-  const [ownerSearchInput, setOwnerSearchInput] = useState('');
-  const [reviewerSearchInput, setReviewerSearchInput] = useState('');
-
-  const selectedOwners = useMemo(() => {
-    return filters.owner 
-      ? (Array.isArray(filters.owner) ? filters.owner : [filters.owner]) 
-      : [];
-  }, [filters.owner]);
-
-  const filteredOwners = useMemo(() => {
-    return allOwners.filter(owner =>
-      owner.toLowerCase().includes(ownerSearchInput.toLowerCase())
-    );
-  }, [allOwners, ownerSearchInput]);
-
-  const filteredReviewers = useMemo(() => {
-    return allReviewers.filter(reviewer =>
-      reviewer.toLowerCase().includes(reviewerSearchInput.toLowerCase())
-    );
-  }, [allReviewers, reviewerSearchInput]);
-
-  const activeFilters = useMemo(() => {
-    const active: {type: string, value: string}[] = [];
-    
-    if (filters.repoName) {
-      active.push({type: 'repo', value: `Repositório: ${filters.repoName}`});
-    }
-    
-    if (selectedOwners.length > 0) {
-      active.push({type: 'owner', value: `Donos: ${selectedOwners.join(', ')}`});
-    }
-    
-    if (filters.approved !== 'all') {
-      active.push({type: 'approved', value: `Aprovação: ${filters.approved === 'approved' ? 'Aprovados' : 'Não Aprovados'}`});
-    }
-    
-    if (filters.reviewers.length > 0) {
-      active.push({type: 'reviewers', value: `Revisores: ${filters.reviewers.join(', ')}`});
-    }
-    
-    return active;
-  }, [filters, selectedOwners]);
-
-  const resetFilters = () => {
-    setFilters({
-      repoName: '',
-      owner: '',
-      approved: 'all',
-      reviewers: []
-    });
-  };
-
-  const removeFilter = (type: string) => {
-    switch(type) {
-      case 'repo':
-        setFilters({...filters, repoName: ''});
-        break;
-      case 'owner':
-        setFilters({...filters, owner: ''});
-        break;
-      case 'approved':
-        setFilters({...filters, approved: 'all'});
-        break;
-      case 'reviewers':
-        setFilters({...filters, reviewers: []});
-        break;
-    }
-  };
-
-  const handleOwnersChange = (_: any, newValue: string[]) => {
-    setFilters({
-      ...filters,
-      owner: newValue
-    });
-  };
-
-  return (
-    <Box sx={{ 
-      mb: 3,
-      border: '1px solid',
-      borderColor: 'divider',
-      borderRadius: 2,
-      p: 2,
-      bgcolor: 'background.paper',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-    }}>
-      <Box 
-        onClick={() => setExpanded(!expanded)}
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'pointer',
-          mb: expanded ? 2 : 0
-        }}
-      >
-        <Box display="flex" alignItems="center" gap={1} sx={{ overflowX: 'auto', flex: 1, mr: 2 }}>
-          <Box display="flex" alignItems="center" gap={1} flexShrink={0}>
-            <FilterAlt fontSize="small" />
-            <Typography variant="subtitle1" fontWeight={600}>
-              Filtros
-            </Typography>
-          </Box>
-          
-          {activeFilters.length > 0 && (
-            <Box display="flex" gap={1} ml={2} sx={{ flex: 1, minWidth: 0 }}>
-              {activeFilters.map((filter, index) => (
-                <Chip
-                  key={index}
-                  label={filter.value}
-                  size="small"
-                  onDelete={() => removeFilter(filter.type)}
-                  deleteIcon={<Close fontSize="small" />}
-                  sx={{
-                    flexShrink: 0,
-                    borderRadius: '6px',
-                    bgcolor: 'action.selected',
-                    '& .MuiChip-deleteIcon': {
-                      color: 'text.secondary'
-                    }
-                  }}
-                />
-              ))}
-            </Box>
-          )}
-        </Box>
-        
-        <ExpandMore sx={{ 
-          transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-          transition: 'transform 0.2s ease',
-          flexShrink: 0
-        }} />
-      </Box>
-
-      {expanded && (
-        <Box sx={{ mt: 2 }}>
-          <Stack gap={2}>
-            {/* Filtro de Repositório */}
-            <Box>
-              <Typography variant="body2" fontWeight={600} mb={1}>
-                Repositório
-              </Typography>
-              <Autocomplete
-                options={allRepos}
-                value={filters.repoName}
-                onChange={(_, newValue) => setFilters({ ...filters, repoName: newValue || '' })}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    size="small"
-                    fullWidth
-                    placeholder="Buscar repositório..."
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '8px',
-                        backgroundColor: 'background.paper'
-                      }
-                    }}
-                  />
-                )}
-                freeSolo
-              />
-            </Box>
-
-            {/* Filtro de Donos */}
-            <Box>
-              <Typography variant="body2" fontWeight={600} mb={1}>
-                Dono do PR
-              </Typography>
-              <Autocomplete
-                multiple
-                options={filteredOwners}
-                value={selectedOwners}
-                onChange={handleOwnersChange}
-                onInputChange={(_, newInputValue) => setOwnerSearchInput(newInputValue)}
-                inputValue={ownerSearchInput}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    size="small"
-                    fullWidth
-                    placeholder="Buscar donos..."
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '8px',
-                        backgroundColor: 'background.paper'
-                      }
-                    }}
-                  />
-                )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      {...getTagProps({ index })}
-                      key={index}
-                      label={option}
-                      size="small"
-                      sx={{ mr: 0.5 }}
-                    />
-                  ))
-                }
-              />
-            </Box>
-
-            {/* Filtro de Status de Aprovação */}
-            <Box>
-              <Typography variant="body2" fontWeight={600} mb={1}>
-                Status de Aprovação
-              </Typography>
-              <Select
-                value={filters.approved}
-                onChange={(e) => setFilters({
-                  ...filters,
-                  approved: e.target.value as 'all' | 'approved' | 'not-approved'
-                })}
-                fullWidth
-                size="small"
-                sx={{
-                  borderRadius: '8px',
-                  '& .MuiSelect-select': {
-                    py: 1
-                  }
-                }}
-              >
-                <MenuItem value="all">Todos</MenuItem>
-                <MenuItem value="approved">Aprovados</MenuItem>
-                <MenuItem value="not-approved">Não Aprovados</MenuItem>
-              </Select>
-            </Box>
-
-            {/* Filtro de Revisores */}
-            <Box>
-              <Typography variant="body2" fontWeight={600} mb={1}>
-                Revisores
-              </Typography>
-              <Autocomplete
-                multiple
-                options={filteredReviewers}
-                value={filters.reviewers}
-                onChange={(_, newValue) => setFilters({ ...filters, reviewers: newValue })}
-                onInputChange={(_, newInputValue) => setReviewerSearchInput(newInputValue)}
-                inputValue={reviewerSearchInput}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    size="small"
-                    fullWidth
-                    placeholder="Buscar revisores..."
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '8px',
-                        backgroundColor: 'background.paper'
-                      }
-                    }}
-                  />
-                )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      {...getTagProps({ index })}
-                      key={index}
-                      label={option}
-                      size="small"
-                      sx={{ mr: 0.5 }}
-                    />
-                  ))
-                }
-              />
-            </Box>
-
-            {/* Botão Limpar Todos */}
-            <Box display="flex" justifyContent="flex-end">
-              <Button
-                size="small"
-                onClick={resetFilters}
-                startIcon={<Close />}
-                sx={{
-                  textTransform: 'none',
-                  color: 'text.secondary'
-                }}
-              >
-                Limpar todos os filtros
-              </Button>
-            </Box>
-          </Stack>
-        </Box>
-      )}
-    </Box>
-  );
-};
-const QuickFilterBar = ({ onSearchChange }: {
-  onSearchChange: (value: string) => void;
-}) => {
-  return (
-    <TextField
-      fullWidth
-      variant="outlined"
-      placeholder="Buscar por título do PR..."
-      onChange={(e) => onSearchChange(e.target.value)}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <Search color="action" />
-          </InputAdornment>
-        ),
-        sx: {
-          borderRadius: '8px',
-          backgroundColor: 'background.paper'
-        }
-      }}
-      sx={{ mb: 2 }}
-    />
-  );
-};
-
-const EmptyState = ({ hasFilters, onReset }: {
-  hasFilters: boolean;
-  onReset: () => void;
-}) => {
-  return (
-    <Box sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      py: 8,
-      textAlign: 'center',
-      borderRadius: '12px',
-      backgroundColor: theme.palette.background.paper,
-      boxShadow: theme.shadows[1]
-    }}>
-      <Inbox sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-      <Typography variant="h6" gutterBottom>
-        {hasFilters ? 'Nenhum PR encontrado com esses filtros' : 'Nenhum PR disponível'}
-      </Typography>
-      <Typography color="text.secondary" sx={{ maxWidth: '400px', mb: 2 }}>
-        {hasFilters ? 'Tente ajustar seus critérios de filtro.' : 'Todos os PRs estão atualizados'}
-      </Typography>
-      {hasFilters && (
-        <Button
-          variant="outlined"
-          sx={{ mt: 2 }}
-          onClick={onReset}
-          startIcon={<Close />}
-        >
-          Limpar filtros
-        </Button>
-      )}
-    </Box>
-  );
-};
-
-const filterPRs = {
-  byRepo: (data: RepoPRsGroup[], repoName: string): RepoPRsGroup[] => {
-    if (!repoName) return data;
-    return data.filter(group =>
-      group.repo.toLowerCase().includes(repoName.toLowerCase())
-    );
-  },
-
-  byOwner: (data: RepoPRsGroup[], owner: string | string[]): RepoPRsGroup[] => {
-    if (!owner || (Array.isArray(owner) && owner.length === 0)) return data;
-
-    const ownersArray = Array.isArray(owner) ? owner : [owner];
-
-    return data.map(group => ({
-      ...group,
-      prs: group.prs.filter(pr =>
-        ownersArray.some(o =>
-          pr.owner.toLowerCase().includes(o.toLowerCase())
-        )
-      )
-    })).filter(group => group.prs.length > 0);
-  },
-
-  byApproval: (data: RepoPRsGroup[], approved: 'all' | 'approved' | 'not-approved'): RepoPRsGroup[] => {
-    if (approved === 'all') return data;
-    return data.map(group => ({
-      ...group,
-      prs: group.prs.filter(pr =>
-        approved === 'approved' ? pr.approved : !pr.approved
-      )
-    })).filter(group => group.prs.length > 0);
-  },
-
-  byReviewers: (data: RepoPRsGroup[], reviewers: string[]): RepoPRsGroup[] => {
-    if (!reviewers || reviewers.length === 0) return data;
-
-    return data.map(group => ({
-      ...group,
-      prs: group.prs.filter(pr =>
-        pr.reviwer?.some(r =>
-          reviewers.some(filterReviewer =>
-            r.name.toLowerCase().includes(filterReviewer.toLowerCase())
-          )
-        )
-      )
-    })).filter(group => group.prs.length > 0);
-  },
-
-  combine: (data: RepoPRsGroup[], filters: Filters): RepoPRsGroup[] => {
-    let result = [...data];
-    result = filterPRs.byApproval(result, filters.approved);
-    result = filterPRs.byRepo(result, filters.repoName);
-    result = filterPRs.byOwner(result, filters.owner);
-    result = filterPRs.byReviewers(result, filters.reviewers);
-    return result;
-  }
-};
-
-const Dashboard = () => {
+const DashboardComponent = () => {
   const { data: session, status } = useSession();
   const [reposData, setReposData] = useState<{ name: string; pulls_url: string }[]>([]);
   const [prsData, setPrsData] = useState<RepoPRsGroup[]>([]);
@@ -489,12 +35,15 @@ const Dashboard = () => {
   const [owner, setOwner] = useState<string | undefined>(session?.user?.githubOwner);
   const [token, setToken] = useState<string | undefined>(session?.user?.token);
   const [searchQuery, setSearchQuery] = useState('');
+  const [userModalOpen, setUserModalOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>({
     repoName: '',
     owner: '',
     approved: 'all',
     reviewers: []
   });
+  const githubLogin = session?.user?.githubOwner;
+
   const router = useRouter();
 
   const allRepos = useMemo(() => {
@@ -515,7 +64,7 @@ const Dashboard = () => {
     const reviewers = new Set<string>();
     prsData.forEach(group => {
       group.prs.forEach(pr => {
-        pr.reviwer?.forEach(r => reviewers.add(r.name));
+        pr.reviewer?.forEach(r => reviewers.add(r.name));
       });
     });
     return Array.from(reviewers).sort();
@@ -564,6 +113,20 @@ const Dashboard = () => {
     }
   }, [token, owner]);
 
+  const handleSuggestionSubmit = async (text: string) => {
+    const response = await fetch('/api/suggestions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ suggestion: text }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Falha ao enviar sugestão');
+    }
+    return response.json();
+  };
+
   useEffect(() => {
     if (status === 'loading') return;
     if (status === 'unauthenticated') router.push('/login');
@@ -593,7 +156,7 @@ const Dashboard = () => {
         const user = await GetUserData(octokit, owner);
 
         setReposData(repos);
-        setPrsData(prsResults); filteredPrsData
+        setPrsData(prsResults);
         setUserData(user);
         setLoading(false);
       } catch (error) {
@@ -645,16 +208,37 @@ const Dashboard = () => {
           p: 3,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center'
+          alignItems: 'center',
+          position: 'relative'
         }}
       >
+
+        <SuggestionButtonWithModal
+          onSubmit={handleSuggestionSubmit}
+        />
+
         <Stack direction="row" justifyContent="flex-end" sx={{ mb: 3, width: '100%', maxWidth: 1440 }}>
           {userData?.avatarUrl ? (
-            <Avatar src={userData.avatarUrl} sx={{ width: 48, height: 48 }} />
+            <Avatar
+              src={userData.avatarUrl}
+              sx={{
+                width: 48,
+                height: 48,
+                cursor: 'pointer',
+              }}
+              onClick={() => setUserModalOpen(true)} // Abre o modal ao clicar
+            />
           ) : (
             <Person sx={{ width: 48, height: 48 }} />
           )}
         </Stack>
+
+        <UserProfileModal
+          open={userModalOpen}
+          onClose={() => setUserModalOpen(false)}
+          owner={githubLogin}
+          token={token}
+        />
 
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexGrow: 1, width: '100%' }}>
@@ -683,7 +267,13 @@ const Dashboard = () => {
                 gap: 3
               }}>
                 <RepositoryList
-                  groupedPullRequests={filteredPrsData}
+                  groupedPullRequests={filteredPrsData.map(group => ({
+                    ...group,
+                    prs: group.prs.map(pr => ({
+                      ...pr,
+                      reviwer: pr.reviewer, // Map reviewer to reviwer
+                    })),
+                  }))}
                   loading={cardLoading}
                   loadingPrIds={loadingPrIds}
                 />
@@ -696,12 +286,12 @@ const Dashboard = () => {
   );
 };
 
-const DashboardWithSession = () => {
+const DashboardPage = () => {
   return (
     <SessionProvider>
-      <Dashboard />
+      <DashboardComponent />
     </SessionProvider>
   );
 };
 
-export default DashboardWithSession;
+export default DashboardPage;

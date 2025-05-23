@@ -1,0 +1,17 @@
+// prisma/schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL") // Usaremos esta variável
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Suggestion {
+  id        Int      @id @default(autoincrement())
+  text      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("suggestions")
+}
