@@ -1,4 +1,4 @@
-export interface Reviewer {
+export interface Reviwer {
   name: string;
   avatarUrl: string;
 }
@@ -15,7 +15,7 @@ export interface PullRequest {
   resolvedComments: number;
   createdAt: string;
   daysOpen: number;
-  reviewer: Reviewer[];
+  reviwer: Reviwer[];
 }
 
 export interface RepoPRsGroup {
@@ -27,7 +27,7 @@ export interface Filters {
   repoName: string;
   owner: string | string[];
   approved: 'all' | 'approved' | 'not-approved';
-  reviewers: string[];
+  reviwer: string[];
 }
 
 export interface FilterPRs {
@@ -77,7 +77,7 @@ export const filterPRs: FilterPRs = {
     return data.map(group => ({
       ...group,
       prs: group.prs.filter(pr =>
-        pr.reviewer?.some(r =>
+        pr.reviwer?.some(r =>
           reviewers.some(filterReviewer =>
             r.name.toLowerCase().includes(filterReviewer.toLowerCase())
           )
@@ -91,7 +91,7 @@ export const filterPRs: FilterPRs = {
     result = filterPRs.byApproval(result, filters.approved);
     result = filterPRs.byRepo(result, filters.repoName);
     result = filterPRs.byOwner(result, filters.owner);
-    result = filterPRs.byReviewers(result, filters.reviewers);
+    result = filterPRs.byReviewers(result, filters.reviwer);
     return result;
   }
 };

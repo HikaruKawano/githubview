@@ -40,7 +40,7 @@ const DashboardComponent = () => {
     repoName: '',
     owner: '',
     approved: 'all',
-    reviewers: []
+    reviwer: []
   });
   const githubLogin = session?.user?.githubOwner;
 
@@ -61,13 +61,13 @@ const DashboardComponent = () => {
   }, [prsData]);
 
   const allReviewers = useMemo(() => {
-    const reviewers = new Set<string>();
+    const reviwer = new Set<string>();
     prsData.forEach(group => {
       group.prs.forEach(pr => {
-        pr.reviewer?.forEach(r => reviewers.add(r.name));
+        pr.reviwer?.forEach(r => reviwer.add(r.name));
       });
     });
-    return Array.from(reviewers).sort();
+    return Array.from(reviwer).sort();
   }, [prsData]);
 
   const handleUpdatePullRequest = useCallback(async (data: any) => {
@@ -191,13 +191,13 @@ const DashboardComponent = () => {
       repoName: '',
       owner: '',
       approved: 'all',
-      reviewers: []
+      reviwer: []
     });
     setSearchQuery('');
   };
 
   const hasActiveFilters = useMemo(() => {
-    return filters.repoName !== '' || filters.owner !== '' || filters.approved !== 'all' || filters.reviewers.length > 0 || searchQuery !== '';
+    return filters.repoName !== '' || filters.owner !== '' || filters.approved !== 'all' || filters.reviwer.length > 0 || searchQuery !== '';
   }, [filters, searchQuery]);
 
   return (
@@ -271,12 +271,13 @@ const DashboardComponent = () => {
                     ...group,
                     prs: group.prs.map(pr => ({
                       ...pr,
-                      reviwer: pr.reviewer, // Map reviewer to reviwer
+                      reviwer: pr.reviwer, // Map reviewer to reviwer
                     })),
                   }))}
                   loading={cardLoading}
                   loadingPrIds={loadingPrIds}
                 />
+
               </Box>
             )}
           </Box>
