@@ -58,10 +58,13 @@ export const AdvancedFilters = ({
       active.push({ type: 'approved', value: `Aprovação: ${filters.approved === 'approved' ? 'Aprovados' : 'Não Aprovados'}` });
     }
     
-    if (filters.reviewers.length > 0) {
-      active.push({ type: 'reviewers', value: `Revisores: ${filters.reviewers.join(', ')}` });
+    if (Array.isArray(filters.reviwer) && filters.reviwer.length > 0) {
+      active.push({
+        type: 'reviewers',
+        value: `Revisores: ${filters.reviwer.join(', ')}`
+      });
     }
-    
+
     return active;
   }, [filters, selectedOwners]);
 
@@ -70,7 +73,7 @@ export const AdvancedFilters = ({
       repoName: '',
       owner: '',
       approved: 'all',
-      reviewers: []
+      reviwer: [] 
     });
   };
 
@@ -86,7 +89,7 @@ export const AdvancedFilters = ({
         setFilters({...filters, approved: 'all'});
         break;
       case 'reviewers':
-        setFilters({...filters, reviewers: []});
+        setFilters({...filters, reviwer: []});
         break;
     }
   };
@@ -256,8 +259,8 @@ export const AdvancedFilters = ({
               <Autocomplete
                 multiple
                 options={filteredReviewers}
-                value={filters.reviewers}
-                onChange={(_, newValue) => setFilters({ ...filters, reviewers: newValue })}
+                value={filters.reviwer}
+                onChange={(_, newValue) => setFilters({ ...filters, reviwer: newValue })}
                 onInputChange={(_, newInputValue) => setReviewerSearchInput(newInputValue)}
                 inputValue={reviewerSearchInput}
                 renderInput={(params) => (
