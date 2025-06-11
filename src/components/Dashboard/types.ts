@@ -16,6 +16,7 @@ export interface PullRequest {
   createdAt: string;
   daysOpen: number;
   reviwer: Reviwer[];
+  isLoading: boolean,
 }
 
 export interface RepoPRsGroup {

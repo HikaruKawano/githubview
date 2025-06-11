@@ -29,7 +29,8 @@ import {
   Avatar,
   AvatarGroup,
   IconButton,
-  Divider
+  Divider,
+  Skeleton
 } from "@mui/material";
 
 interface Reviwer {
@@ -47,6 +48,7 @@ interface CardItemProps {
   daysOpen: number;
   approved?: boolean;
   reviwer?: Reviwer[];
+  isLoading?: boolean;
 }
 
 const CardItem: React.FC<CardItemProps> = ({
@@ -58,6 +60,7 @@ const CardItem: React.FC<CardItemProps> = ({
   approved = false,
   problemType,
   reviwer = [],
+  isLoading = false,
 }) => {
   const theme = useTheme();
 
@@ -98,6 +101,34 @@ const CardItem: React.FC<CardItemProps> = ({
   const getInitial = (name?: string) => {
     return name?.charAt(0)?.toUpperCase() || '?';
   };
+
+  if (isLoading) {
+    return (
+      <Box
+        p={3}
+        borderRadius={4}
+        sx={{
+          width: { xs: "100%", sm: 400, md: 420 },
+          minHeight: 320,
+          background: 'linear-gradient(135deg, rgba(32, 32, 32, 0.95) 0%, rgba(40, 40, 40, 0.95) 100%)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          gap: 2
+        }}
+      >
+        <Skeleton variant="text" width={120} height={20} />
+        <Skeleton variant="rounded" height={28} width="40%" />
+        <Skeleton variant="text" height={36} />
+        <Skeleton variant="text" width="60%" />
+        <Skeleton variant="rounded" height={8} />
+        <Skeleton variant="text" width="80%" />
+        <Skeleton variant="circular" width={36} height={36} />
+      </Box>
+    );
+  }
 
   return (
     <Box
