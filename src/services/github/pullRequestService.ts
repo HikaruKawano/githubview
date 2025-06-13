@@ -5,28 +5,22 @@ import pLimit from 'p-limit';
 
 const headers = { "X-GitHub-Api-Version": "2022-11-28" };
 
-export async function GetReviewCommentsCount(octokit: Octokit, url: string, pullNumber?: number) {
+export async function GetReviewCommentsCount(octokit: Octokit, url: string, pullNumber: number) {
   try {
-    const endpoint = pullNumber === undefined
-      ? `${url}/comments`
-      : `${url}/${pullNumber}/comments`;
-
+    const endpoint = `${url}/${pullNumber}/comments`;
     const { data } = await octokit.request(`GET ${endpoint}`, {
       headers,
       per_page: 100,
     });
-
     return data.length;
   } catch {
     throw new Error("Erro ao buscar comentários do PR.");
   }
 }
 
-export async function IsPullRequestApproved(octokit: Octokit, url: string, pullNumber?: number) {
-  const endpoint = pullNumber === undefined
-    ? `${url}/comments`
-    : `${url}/${pullNumber}/reviews`;
+export async function IsPullRequestApproved(octokit: Octokit, url: string, pullNumber: number) {
   try {
+    const endpoint = `${url}/${pullNumber}/reviews`;
     const { data } = await octokit.request(`GET ${endpoint}`, { headers });
     return data.some((review: any) => review.state === "APPROVED");
   } catch {
@@ -34,8 +28,14 @@ export async function IsPullRequestApproved(octokit: Octokit, url: string, pullN
   }
 }
 
-export async function GetResolvedReviewThreads(octokit: Octokit, repo: { name: string; pulls_url: string }, pullNumber: number) {
-  const owner = repo.pulls_url.match(/(?<=https:\/\/api\.github\.com\/repos\/)[^\/]+/);
+export async function GetResolvedReviewThreads(
+  octokit: Octokit,
+  repo: { name: string; pulls_url: string },
+  pullNumber: number
+) {
+  const owner = repo.pulls_url.match(/(?<=https:\/\/api\.github\.com\/repos\/)[^\/]+/)?.[0];
+  if (!owner) throw new Error("Owner não encontrado na URL.");
+
   const query = `
     query($owner: String!, $repo: String!, $pull_number: Int!) {
       repository(owner: $owner, name: $repo) {
@@ -50,7 +50,7 @@ export async function GetResolvedReviewThreads(octokit: Octokit, repo: { name: s
     }
   `;
 
-  const variables = { owner: owner![0], repo: repo.name, pull_number: pullNumber };
+  const variables = { owner, repo: repo.name, pull_number: pullNumber };
 
   const response = await octokit.graphql(query, variables) as {
     repository: {
@@ -61,10 +61,13 @@ export async function GetResolvedReviewThreads(octokit: Octokit, repo: { name: s
   };
 
   const resolvedThreads = response.repository.pullRequest.reviewThreads.nodes;
-  return resolvedThreads.filter((thread) => thread.isResolved).length;
+  return resolvedThreads.filter(thread => thread.isResolved).length;
 }
 
-export async function FetchOpenPullRequests(octokit: Octokit, repo: { name: string; pulls_url: string }) {
+export async function FetchOpenPullRequests(
+  octokit: Octokit,
+  repo: { name: string; pulls_url: string }
+) {
   try {
     const { data } = await octokit.request(`GET ${repo.pulls_url}`, {
       headers,
@@ -74,43 +77,21 @@ export async function FetchOpenPullRequests(octokit: Octokit, repo: { name: stri
 
     if (!data.length) return null;
 
-    const limit = pLimit(3);
+    // Simplificado: retornando apenas dados básicos
+    const simplifiedPRs = data.map((pr: any) => ({
+      id: pr.id,
+      number: pr.number,
+      title: pr.title,
+      url: pr.user?.avatar_url,
+      state: pr.state,
+      owner: pr.user?.login,
+      prUrl: pr.html_url,
+      createdAt: pr.created_at,
+      requested_reviewers: pr.requested_reviewers,
+      base: pr.base,
+    }));
 
-    const pullRequests = await Promise.all(
-      data.map((pr: any) => limit(async () => {
-        const [comments, resolvedComments, approved] = await Promise.all([
-          GetReviewCommentsCount(octokit, repo.pulls_url, pr.number),
-          GetResolvedReviewThreads(octokit, repo, pr.number),
-          IsPullRequestApproved(octokit, repo.pulls_url, pr.number),
-        ]);
-
-        const createdAt = new Date(pr.created_at);
-        const now = new Date();
-        const daysOpen = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
-
-        const reviwer = pr.requested_reviewers.map((reviewer: any) => ({
-          name: reviewer.login,
-          avatarUrl: reviewer.avatar_url,
-        }));
-
-        return {
-          id: pr.id,
-          title: pr.title,
-          url: pr.user?.avatar_url,
-          state: pr.state,
-          owner: pr.user?.login,
-          prUrl: pr.html_url,
-          approved,
-          comments,
-          resolvedComments,
-          createdAt: pr.created_at,
-          daysOpen,
-          reviwer
-        };
-      }))
-    );
-
-    return { repo: repo.name, prs: pullRequests };
+    return { repo: repo.name, prs: simplifiedPRs };
   } catch (err: any) {
     if (err.status === 404) return null;
     return null;

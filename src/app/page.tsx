@@ -44,7 +44,7 @@ const DashboardComponent = () => {
   const githubLogin = session?.user?.githubOwner;
   const router = useRouter();
 
-  useIncrementalPrLoader({
+  const { updatePrManually } = useIncrementalPrLoader({
     octokit,
     repos: reposData,
     setPrsData
@@ -89,39 +89,31 @@ const DashboardComponent = () => {
 
   const handleUpdatePullRequest = useCallback(async (data: any) => {
     if (!token || !owner) return;
-    try {
-      const octokit = CreateOctokit(token);
-      const repoName = data.repository?.name;
-      const prId = data.pull_request?.id;
-      const prNumber = data.pull_request?.number;
-      const url = data.pull_request?.url;
-      if (!repoName || !prId) return;
-      if (data.action === 'closed') {
-        setPrsData(prev => {
-          const updatedGroups = prev.map(group =>
-            group.repo === repoName
-              ? { ...group, prs: group.prs.filter((pr: any) => pr.id !== prId) }
-              : group
-          );
-          return updatedGroups.filter(group => group.prs.length > 0);
-        });
-        return;
-      }
-      const freshPrData = await FetchOpenPullRequests(octokit, { name: repoName, pulls_url: url });
-      if (freshPrData) {
-        const freshPr = freshPrData?.prs.find(pr => pr.id === prId);
-        if (freshPr) {
-          setPrsData(prev => prev.map(group =>
-            group.repo === repoName
-              ? { ...group, prs: group.prs.map(pr => pr.id === prId ? freshPr : pr) }
-              : group
-          ));
-        }
-      }
-    } catch (err) {
-      console.error('Erro ao atualizar PR:', err);
+  
+    const repoName = data.repository?.name;
+    const prNumber = data.pull_request?.number;
+  
+    if (!repoName || prNumber == null) return;
+  
+    const repo = reposData.find(r => r.name === repoName);
+    if (!repo) return;
+  
+    if (data.action === 'closed') {
+      setPrsData(prev => {
+        const updatedGroups = prev.map(group =>
+          group.repo === repoName
+            ? { ...group, prs: group.prs.filter((pr: any) => pr.id !== data.pull_request.id) }
+            : group
+        );
+        return updatedGroups.filter(group => group.prs.length > 0);
+      });
+      return;
     }
-  }, [token, owner]);
+  
+    // Força atualização incremental completa
+    await updatePrManually(repo, prNumber);
+  }, [token, owner, reposData, setPrsData]);  
+  
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -141,7 +133,7 @@ const DashboardComponent = () => {
 
   useEffect(() => {
     if (!token || !owner) return;
-  
+
     const loadIncrementalData = async () => {
       try {
         const createdOctokit = CreateOctokit(token);
@@ -158,10 +150,9 @@ const DashboardComponent = () => {
         router.push('/login');
       }
     };
-  
+
     loadIncrementalData();
   }, [token, owner, router]);
-  
 
   const filteredPrsData = useMemo(() => {
     let result = filterPRs.combine(prsData, filters);
