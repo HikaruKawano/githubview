@@ -17,6 +17,7 @@ export interface PullRequest {
   daysOpen: number;
   reviwer: Reviwer[];
   isLoading: boolean,
+  conflicted?: boolean; // Optional field to indicate if the PR has conflicts
 }
 
 export interface RepoPRsGroup {

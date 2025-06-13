@@ -20,6 +20,7 @@ interface PullRequest {
   resolvedComments: number;
   reviwer: Reviwer[];
   isLoading?: boolean; // <- nova flag
+  conflicted?: boolean;
 }
 
 interface RepositoryListProps {
@@ -94,7 +95,7 @@ export function RepositoryList({
       onCardsReady();
     }
   }, [loading, groupedPullRequests, onCardsReady]);
-
+  
   return (
     <Stack borderRadius={2} padding={2} flex={1}>
       {groupedPullRequests.length === 0 && loading && (
